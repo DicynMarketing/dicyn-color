@@ -188,6 +188,10 @@ a.btn{text-decoration:none;color:inherit}
 .empty-st b{font-family:var(--display);font-size:17px}
 .empty-st span{color:var(--muted);font-size:13px}
 .shell.empty .empty-st{display:flex}
+.shell.empty .stage{position:absolute!important;inset:8px;width:auto!important;height:auto!important;transform:none!important}
+.shell.empty .rail,.shell.empty .tools,.shell.empty .tray,.shell.empty .tabs{display:none!important}
+.shell.empty .empty-st span{display:none}
+.btn.qv.arm{background:var(--danger);border-color:var(--danger);color:#fff}
 .shell.empty #gl,.shell.empty #ov,.shell.empty .vtools,.shell.empty .badge{display:none}
 .shell.empty #trk,.shell.empty .thb,.shell.empty .trimtag{visibility:hidden}
 .upd-logo.sm{height:56px;gap:6px}
@@ -254,6 +258,8 @@ a.btn{text-decoration:none;color:inherit}
 @media (max-width:899px){.partmenu{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:70vh;z-index:15}.trow:not(.video) .tlab .nm{display:none}.trow.video{height:40px}.trow.video .tbar{height:36px}.tlab{padding:0 4px 0 8px;gap:4px}.trow.video .tlab .nm{font-size:11px}}
 @media (max-width:480px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
 @media (max-width:899px){.shell.portrait .badge{display:none}
+  .shell.empty{grid-template-rows:auto minmax(0,1fr) 0 0}
+  .thb .btn.qv{margin-right:auto}
   :root{--trayh:222px}
   .shell{grid-template-rows:auto minmax(0,1fr) var(--trayh) auto;grid-template-areas:"top" "viewer" "tray" "tools"}
   .shell.sheet-open .tray{display:none}
@@ -1164,6 +1170,13 @@ function placeTransport() {
 function renderTrayHead() {
   placeTransport();
   const h = $('thB'); h.innerHTML = '';
+  if (isVideo()) {
+    const q = btn(S.quitArm ? '¿Quitar video?' : 'Quitar video', 'sm danger qv' + (S.quitArm ? ' arm' : ''), () => {
+      if (!S.quitArm) { S.quitArm = true; renderTrayHead(); clearTimeout(S.quitT); S.quitT = setTimeout(() => { S.quitArm = false; renderTrayHead(); }, 3500); return; }
+      S.quitArm = false; clearTimeout(S.quitT); clearVideo();
+    }, !!S.busy, ICO.trash);
+    h.appendChild(q);
+  }
   h.append(btn('Dividir', 'sm', splitHere, false, ICO.split),
     btn('Eliminar clip', 'sm' + (S.selClip >= 0 ? ' danger' : ''), deleteClip, S.selClip < 0 || S.clips.length < 2, ICO.cut),
     btn('Deshacer cortes', 'sm ghost', restoreAll, S.clips.length === 1 && S.clips[0].a <= .01 && S.clips[0].b >= srcDur() - .01, ICO.undo));
@@ -1797,6 +1810,21 @@ function qslider(obj, k, min, max, step, fmt, def, label, hue) {
   sync(); return row;
 }
 
+/* ================= Quitar el video ================= */
+function clearVideo() {
+  if (S.busy) return;
+  togglePlay(false); closePartMenu(); endBrush(); openSheet(false);
+  const old = video.src; video.removeAttribute('src'); video.load(); if (old && old.startsWith('blob:')) URL.revokeObjectURL(old);
+  S.src = 'demo'; S.name = 'demo'; S.file = null; S.w = 1080; S.h = 1920; S.vt = 0; S.demoT = 0;
+  S.clips = [{ a: 0, b: S.demoDur }]; S.selClip = -1; S.layers = []; S.sel = 'scene'; S.pick = null; S.thumbs = [];
+  S.global = newGrade(); Object.assign(S.grt, RDEF); Object.assign(S.enh, { hdr: 0, sharp: 0, clar: 0, vib: 0 }); S.pnames = new Map();
+  AN = null; S.maskVer++;
+  $('badge').textContent = ''; $('meta').textContent = '';
+  shell.classList.add('empty');
+  layoutViewer(); renderCapas(); renderBody(); renderTrayHead(); paintTrim(); sizeTray();
+  toast('Video quitado. Importa otro cuando quieras.');
+}
+
 /* ================= Importar ================= */
 $('importBtn').onclick = () => { if (!S.busy) $('file').click(); };
 $('file').addEventListener('change', e => {
@@ -2422,7 +2450,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '16';
+const APP_VERSION = '17';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
