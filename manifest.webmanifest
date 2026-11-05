@@ -1,9 +1,11 @@
 {
+ "id": "./",
  "name": "DiCyn Color",
  "short_name": "DiCyn Color",
+ "description": "Editor de video: capas por persona con IA, colorización, retoque y recorte.",
  "start_url": "./",
  "scope": "./",
- "display": "fullscreen",
+ "display": "standalone",
  "display_override": [
   "fullscreen",
   "standalone"
@@ -12,19 +14,31 @@
  "background_color": "#0e0f11",
  "theme_color": "#16181b",
  "lang": "es",
+ "categories": [
+  "photo",
+  "productivity"
+ ],
  "icons": [
   {
    "src": "icon-192.png",
    "sizes": "192x192",
-   "type": "image/png"
+   "type": "image/png",
+   "purpose": "any"
   },
   {
    "src": "icon-512.png",
    "sizes": "512x512",
-   "type": "image/png"
+   "type": "image/png",
+   "purpose": "any"
   },
   {
-   "src": "icon-512.png",
+   "src": "icon-maskable-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icon-maskable-512.png",
    "sizes": "512x512",
    "type": "image/png",
    "purpose": "maskable"
