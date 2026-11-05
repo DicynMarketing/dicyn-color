@@ -181,6 +181,25 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 .parts button[aria-pressed="true"]{border-color:var(--lc,var(--accent));background:var(--raise2)}
 .parts button:disabled{opacity:.4;cursor:not-allowed}
 a.btn{text-decoration:none;color:inherit}
+.tht{display:flex;align-items:center;gap:10px;min-width:0}
+.tht:empty{display:none}
+.thb{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.trow.ruler{height:16px}
+.trow.ruler .tbar{height:16px;background:none;cursor:pointer;border-radius:0}
+.upd{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-content:center;justify-items:center;gap:14px;transition:opacity .4s ease}
+.upd.out{opacity:0}
+.upd-logo{display:flex;gap:9px;align-items:center;height:96px}
+.upd-logo b{width:22px;height:84px;border-radius:7px;animation:eq 1s ease-in-out infinite;transform-origin:center}
+.upd-logo b:nth-child(1){background:#e8574b}
+.upd-logo b:nth-child(2){background:#5fc06a;animation-delay:.15s}
+.upd-logo b:nth-child(3){background:#4b8ef0;animation-delay:.3s}
+@keyframes eq{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+.upd-name{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.02em}
+.upd-txt{color:var(--muted);font-size:14px}
+.upd-bar{width:180px;height:4px;border-radius:2px;background:var(--raise);overflow:hidden}
+.upd-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent);animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+.upd-ver{font-family:var(--display);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .modal{position:fixed;inset:0;z-index:20;background:rgba(5,6,8,.72);display:grid;place-items:center;padding:16px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(400px,100%);display:grid;gap:12px}
 .card h2{font-family:var(--display);font-size:18px;margin:0;text-wrap:balance}
@@ -197,7 +216,24 @@ a.btn{text-decoration:none;color:inherit}
 
 @media (max-width:899px){.partmenu{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:70vh;z-index:15}.trow:not(.video) .tlab .nm{display:none}.trow.video{height:40px}.trow.video .tbar{height:36px}.tlab{padding:0 4px 0 8px;gap:4px}.trow.video .tlab .nm{font-size:11px}}
 @media (max-width:480px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
-@media (max-width:899px){.shell.portrait .badge{display:none}}
+@media (max-width:899px){.shell.portrait .badge{display:none}
+  :root{--trayh:156px}
+  .shell{--vh:clamp(220px,40svh,460px)}
+  .shell.portrait{--vh:clamp(280px,49svh,640px)}
+  .top{padding:6px 10px;gap:6px}
+  .top .btn{padding:6px 10px;font-size:13px}
+  .transport{display:none}
+  .vwrap{padding:6px}
+  .trayhead{padding:0 10px 6px;gap:8px}
+  .tht .play{width:34px;height:34px}
+  .tht .tc{font-size:13px}
+  .thb{justify-content:flex-end}
+  .thb .btn .lb{display:none}
+  .thb .btn{width:36px;height:34px;padding:0}
+  .thb .btn svg{width:17px;height:17px}
+  .grip{height:12px}
+  .tab{padding:6px 2px 5px}
+}
 @media (min-width:900px){
   :root{--trayh:210px;--labw:150px}
   .shell{grid-template-columns:270px minmax(0,1fr) 340px;grid-template-rows:auto auto minmax(0,1fr) var(--trayh);
@@ -216,7 +252,7 @@ a.btn{text-decoration:none;color:inherit}
   .shell.portrait .viewer{grid-row:2 / 5}
   .top{padding:9px 16px}
 }
-@media (prefers-reduced-motion:reduce){.bar b{transition:none}}
+@media (prefers-reduced-motion:reduce){.upd-logo b,.upd-bar i{animation:none}.bar b{transition:none}}
 </style>
 
 <div class="shell" id="shell" data-tab="capas">
@@ -242,7 +278,7 @@ a.btn{text-decoration:none;color:inherit}
         </div>
       </div>
     </div>
-    <div class="transport">
+    <div class="transport" id="transport">
       <button class="play" id="playBtn" aria-label="Reproducir"></button>
       <span class="tc" id="tc">00:00:00</span>
       <span class="trimtag" id="trimtag"></span>
@@ -251,7 +287,7 @@ a.btn{text-decoration:none;color:inherit}
 
   <section class="tray" id="tray" aria-label="Línea de tiempo">
     <div class="grip" id="grip" title="Arrastra para cambiar el tamaño"></div>
-    <div class="trayhead" id="trayhead"></div>
+    <div class="trayhead" id="trayhead"><div class="tht" id="thT"></div><div class="thb" id="thB"></div></div>
     <div class="trk" id="trk"><div class="ph" id="ph"></div><div id="rows"></div></div>
   </section>
 
@@ -295,6 +331,13 @@ a.btn{text-decoration:none;color:inherit}
       <button class="btn primary" id="doneShare">Guardar o compartir</button>
     </div>
   </div>
+</div>
+<div class="upd" id="upd" hidden>
+  <div class="upd-logo" aria-hidden="true"><b></b><b></b><b></b></div>
+  <div class="upd-name">DiCyn Color</div>
+  <div class="upd-txt">Actualizando…</div>
+  <div class="upd-bar"><i></i></div>
+  <div class="upd-ver" id="updVer"></div>
 </div>
 <div class="toast" id="toast" hidden></div>
 <video id="vid" playsinline preload="auto" hidden></video>
@@ -986,16 +1029,21 @@ const ICO = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
   brush: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.4 2.6a2 2 0 0 1 2.9 2.9L11 15.8 8.2 13Z"/><path d="M7 14.5c-1.7 0-3 1.3-3 3 0 1.3-.7 2-2 2.5 1 .7 2.3 1 3.5 1A3.5 3.5 0 0 0 9 17.5"/></svg>'
 };
+function placeTransport() {
+  const tgt = isDesk() ? $('transport') : $('thT');
+  if ($('playBtn').parentElement !== tgt) { tgt.prepend($('tc')); tgt.prepend($('playBtn')); }
+}
 function renderTrayHead() {
-  const h = $('trayhead'); h.innerHTML = '';
+  placeTransport();
+  const h = $('thB'); h.innerHTML = '';
   h.append(btn('Dividir', 'sm', splitHere, false, ICO.split),
     btn('Eliminar clip', 'sm' + (S.selClip >= 0 ? ' danger' : ''), deleteClip, S.selClip < 0 || S.clips.length < 2, ICO.cut),
     btn('Deshacer cortes', 'sm ghost', restoreAll, S.clips.length === 1 && S.clips[0].a <= .01 && S.clips[0].b >= srcDur() - .01, ICO.undo));
-  h.appendChild(el('span', 'sp'));
-  h.appendChild(el('span', 'hint', isDesk() ? 'S divide · Supr elimina' : ''));
+  if (isDesk()) { h.appendChild(el('span', 'sp')); h.appendChild(el('span', 'hint', 'S divide · Supr elimina')); }
 }
 function sizeTray() {
   const rows = $('rows'); rows.innerHTML = '';
+  rows.appendChild(el('div', 'trow ruler', `<div class="tlab"></div><div class="tbar rul"><canvas></canvas></div>`));
   rows.appendChild(el('div', 'trow video', `<div class="tlab"><span class="nm">Video</span></div><div class="tbar" id="vbar"><canvas></canvas></div>`));
   S.layers.forEach(L => {
     const r = el('div', 'trow' + (L.visible ? '' : ' off'), `<div class="tlab"><span class="dot" style="background:${L.color}"></span><span class="nm">${esc(L.name)}</span><button class="x" aria-label="Eliminar ${esc(L.name)}">${ICO.x}</button></div><div class="tbar"><canvas></canvas></div>`);
@@ -1045,11 +1093,24 @@ function drawLayerBar(c, L) {
   g.globalAlpha = 1; g.fillStyle = 'rgba(10,11,13,.85)'; g.font = '600 11px "IBM Plex Sans", system-ui, sans-serif'; g.textBaseline = 'middle';
   g.fillText(L.name + (L.kind === 'ovalo' ? (L.rel === 1 ? ' · detrás' : L.rel === 2 ? ' · sobre' : ' · óvalo') : ''), 8, H / 2 + .5);
 }
+function fmtT(t) { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + (Number.isInteger(Math.round(s * 10) / 10) ? Math.round(s) : s.toFixed(1)); }
+function drawRuler(c) {
+  const g = c.getContext('2d'), d = window.devicePixelRatio || 1, W = c.width / d, H = c.height / d, E = editDur();
+  g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, W, H); if (!E) return;
+  const step = [.5, 1, 2, 5, 10, 15, 30, 60, 120].find(s => s / E * W >= 44) || 300;
+  g.fillStyle = '#5c626c'; g.font = '500 10px "IBM Plex Sans", system-ui, sans-serif'; g.textBaseline = 'top';
+  for (let t = 0; t <= E + 1e-6; t += step / 2) {
+    const x = Math.round(t / E * (W - 1)) + .5, major = Math.abs(t / step - Math.round(t / step)) < 1e-6;
+    g.fillRect(x - .5, major ? H - 7 : H - 4, 1, major ? 7 : 4);
+    if (major) { g.fillStyle = '#8f949d'; const s = fmtT(t), tw = g.measureText(s).width; g.fillText(s, clamp(x - tw / 2, 0, W - tw), 0); g.fillStyle = '#5c626c'; }
+  }
+}
 function drawTray() {
   S.trayDirty = false;
-  const rows = $('rows').children; if (!rows.length) return;
-  const vb = rows[0].querySelector('canvas'); if (vb) drawVideoBar(vb);
-  S.layers.forEach((L, i) => { const r = rows[i + 1]; const c = r && r.querySelector('canvas'); if (c) drawLayerBar(c, L); });
+  const rows = $('rows').children; if (rows.length < 2) return;
+  const rc = rows[0].querySelector('canvas'); if (rc) drawRuler(rc);
+  const vb = rows[1].querySelector('canvas'); if (vb) drawVideoBar(vb);
+  S.layers.forEach((L, i) => { const r = rows[i + 2]; const c = r && r.querySelector('canvas'); if (c) drawLayerBar(c, L); });
 }
 function placePlayhead() {
   const vb = $('vbar'); if (!vb) return;
@@ -1094,7 +1155,7 @@ $('trk').addEventListener('pointermove', trayMove);
 const trayEnd = () => { if (tld && tld.mode === 'edge') { renderTrayHead(); renderCapas(); } tld = null; };
 $('trk').addEventListener('pointerup', trayEnd); $('trk').addEventListener('pointercancel', trayEnd);
 (() => {
-  const saved = +store.get('cc-trayh'); if (saved) shell.style.setProperty('--trayh', saved + 'px');
+  const saved = +store.get('dc-trayh3'); if (saved) shell.style.setProperty('--trayh', saved + 'px');
   let st = null;
   $('grip').addEventListener('pointerdown', e => { st = { y: e.clientY, h: $('tray').getBoundingClientRect().height }; $('grip').setPointerCapture(e.pointerId); });
   $('grip').addEventListener('pointermove', e => {
@@ -1102,7 +1163,7 @@ $('trk').addEventListener('pointerup', trayEnd); $('trk').addEventListener('poin
     const h = clamp(st.h + (isDesk() ? st.y - e.clientY : e.clientY - st.y), 90, window.innerHeight * .6);
     shell.style.setProperty('--trayh', Math.round(h) + 'px'); fitStage(); sizeTray();
   });
-  const end = () => { if (st) { store.set('cc-trayh', Math.round($('tray').getBoundingClientRect().height)); st = null; } };
+  const end = () => { if (st) { store.set('dc-trayh3', Math.round($('tray').getBoundingClientRect().height)); st = null; } };
   $('grip').addEventListener('pointerup', end); $('grip').addEventListener('pointercancel', end);
 })();
 async function makeThumbs(url) {
@@ -1125,7 +1186,7 @@ async function makeThumbs(url) {
 
 /* ================= Paneles ================= */
 function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
-function btn(label, cls, on, disabled, icon) { const b = el('button', 'btn ' + (cls || ''), (icon || '') + esc(label)); b.onclick = on; if (disabled) b.disabled = true; return b; }
+function btn(label, cls, on, disabled, icon) { const b = el('button', 'btn ' + (cls || ''), (icon || '') + '<span class="lb">' + esc(label) + '</span>'); b.title = label; b.setAttribute('aria-label', label); b.onclick = on; if (disabled) b.disabled = true; return b; }
 function selectLayer(id) {
   S.sel = id; renderCapas(); renderBody(); markTray();
   document.querySelectorAll('#rows .trow[data-id]').forEach(r => r.setAttribute('aria-current', +r.dataset.id === id));
@@ -2119,6 +2180,42 @@ async function exportMR(ow, oh, bps) {
   return { blob: new Blob(chunks, { type: mime.split(';')[0] }), ext: mime.includes('mp4') ? 'mp4' : 'webm' };
 }
 
+/* ================= Actualizaciones ================= */
+const APP_VERSION = '10';
+function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
+function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
+(() => {
+  if (window.claude) return;
+  const prev = store.get('dc-ver');
+  let pending = null; try { pending = sessionStorage.getItem('dc-upd'); } catch (e) {}
+  store.set('dc-ver', APP_VERSION);
+  if (prev && prev !== APP_VERSION) {
+    showUpdating(APP_VERSION);
+    setTimeout(() => { hideUpdating(); toast('DiCyn Color se actualizó a la versión ' + APP_VERSION + '.'); }, pending ? 900 : 2200);
+  }
+  try { sessionStorage.removeItem('dc-upd'); } catch (e) {}
+})();
+let updTried = false;
+async function checkUpdate() {
+  if (window.claude || location.protocol !== 'https:' || updTried) return;
+  if (S.busy === 'export' || S.busy === 'analyze') return;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const j = await r.json(); if (!j.v || j.v === APP_VERSION) return;
+    let tried = null; try { tried = sessionStorage.getItem('dc-upd-try'); } catch (e) {}
+    if (tried === j.v) return;
+    updTried = true;
+    try { sessionStorage.setItem('dc-upd-try', j.v); sessionStorage.setItem('dc-upd', j.v); } catch (e) {}
+    showUpdating(j.v);
+    const t0 = Date.now();
+    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) {}
+    await sleep(Math.max(0, 1600 - (Date.now() - t0)));
+    location.reload();
+  } catch (e) {}
+}
+setTimeout(checkUpdate, 2500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { updTried = false; checkUpdate(); } });
+
 /* ================= Sin zoom (modo app) ================= */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
@@ -2150,6 +2247,7 @@ function loop(now) {
 }
 let lastDesk = isDesk();
 new ResizeObserver(() => { layoutViewer(); sizeTray(); const d = isDesk(); if (d !== lastDesk) { lastDesk = d; setTab(S.tab); renderTrayHead(); } }).observe(shell);
+window.addEventListener('resize', () => { const d = isDesk(); if (d !== lastDesk) { lastDesk = d; setTab(S.tab); renderTrayHead(); } });
 layoutViewer(); renderCapas(); setTab(isDesk() ? 'color' : 'capas'); paintPlay(); paintTrim(); renderTrayHead(); makeThumbs(); sizeTray();
 requestAnimationFrame(loop);
 })();
