@@ -181,6 +181,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 .parts button[aria-pressed="true"]{border-color:var(--lc,var(--accent));background:var(--raise2)}
 .parts button:disabled{opacity:.4;cursor:not-allowed}
 a.btn{text-decoration:none;color:inherit}
+.sheet,.tools,.rail{display:none}
 .tht{display:flex;align-items:center;gap:10px;min-width:0}
 .tht:empty{display:none}
 .thb{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
@@ -217,6 +218,33 @@ a.btn{text-decoration:none;color:inherit}
 @media (max-width:899px){.partmenu{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:70vh;z-index:15}.trow:not(.video) .tlab .nm{display:none}.trow.video{height:40px}.trow.video .tbar{height:36px}.tlab{padding:0 4px 0 8px;gap:4px}.trow.video .tlab .nm{font-size:11px}}
 @media (max-width:480px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
 @media (max-width:899px){.shell.portrait .badge{display:none}
+  .shell{grid-template-rows:auto minmax(0,1fr) var(--trayh) 0 auto;grid-template-areas:"top" "viewer" "tray" "sheet" "tools"}
+  .shell.sheet-open{grid-template-rows:auto minmax(0,1fr) var(--trayh) min(40svh,360px) auto}
+  .tabs,.shell>.capas,.shell>.body{display:none!important}
+  .sheet{grid-area:sheet;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--panel);border-top:1px solid var(--line)}
+  .sheethead{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 6px 16px;border-bottom:1px solid var(--line);flex:none}
+  .sheethead b{font-family:var(--display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .sheetbody{position:relative;flex:1;min-height:0}
+  .sheetbody .capas,.sheetbody .body{position:absolute;inset:0;overflow-y:auto;padding:12px 16px 16px}
+  .shell[data-tab="capas"] .sheetbody .body,.shell:not([data-tab="capas"]) .sheetbody .capas{display:none}
+  .tools{grid-area:tools;display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tool{border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;font-size:11.5px;font-weight:600;cursor:pointer}
+  .tool svg{width:21px;height:21px}
+  .tool[aria-pressed="true"]{color:var(--accent)}
+  .rail{display:flex;position:absolute;z-index:4;gap:6px}
+  .shell.portrait .rail{right:8px;top:50%;transform:translateY(-50%);flex-direction:column}
+  .shell:not(.portrait) .rail{left:50%;bottom:4px;transform:translateX(-50%);flex-direction:row}
+  .rbtn{width:56px;border:1px solid var(--line);background:rgba(31,34,38,.92);color:var(--fg);border-radius:12px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;cursor:pointer}
+  .rbtn svg{width:20px;height:20px}
+  .rbtn:active{background:var(--raise2)}
+  .shell:not(.portrait) .rbtn{width:auto;flex-direction:row;padding:7px 10px;gap:5px;border-radius:10px}
+  .shell:not(.portrait) .rbtn svg{width:17px;height:17px}
+  .shell.sheet-open .rbtn{width:40px;height:40px;padding:0;justify-content:center;border-radius:10px}
+  .shell.sheet-open .rbtn span{display:none}
+  .shell.sheet-open .rail{gap:5px}
+  .vbtn{padding:4px 7px;font-size:11.5px}
+  .sheetbody .capas>.stack>.sechead:first-child .lbl{visibility:hidden}
+
   :root{--trayh:156px}
   .shell{--vh:clamp(220px,40svh,460px)}
   .shell.portrait{--vh:clamp(280px,49svh,640px)}
@@ -268,6 +296,7 @@ a.btn{text-decoration:none;color:inherit}
     <div class="vwrap" id="vwrap">
       <div class="brushbar" id="brushBar" hidden><span>Pincel</span><input type="range" id="brushSize" min=".01" max=".1" step=".005" aria-label="Tamaño del pincel"><button class="btn sm ghost" id="brushUndo">Deshacer</button><button class="btn sm" id="brushCancel">Cancelar</button><button class="btn sm primary" id="brushDone">Listo</button></div>
       <div class="partmenu" id="partMenu" hidden></div>
+      <div class="rail" id="rail"></div>
       <div class="stage" id="stage">
         <canvas id="gl"></canvas>
         <canvas id="ov"></canvas>
@@ -300,6 +329,16 @@ a.btn{text-decoration:none;color:inherit}
 
   <aside class="capas" id="p-capas"></aside>
   <section class="body" id="p-body"></section>
+  <section class="sheet" id="sheet" aria-label="Herramientas">
+    <div class="sheethead"><b id="sheetTitle"></b><button class="btn sm" id="sheetClose">Listo</button></div>
+    <div class="sheetbody" id="sheetBody"></div>
+  </section>
+  <nav class="tools" id="tools" aria-label="Herramientas de edición">
+    <button class="tool" data-t="capas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>Capas</button>
+    <button class="tool" data-t="color"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>Color</button>
+    <button class="tool" data-t="retoque"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8Z"/><path d="M18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9Z"/></svg>Retoque</button>
+    <button class="tool" data-t="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Máscara</button>
+  </nav>
 </div>
 
 <div class="modal" id="modal" hidden>
@@ -746,6 +785,7 @@ function sizeCanvas(target) {
 }
 function layoutViewer() {
   shell.classList.toggle('portrait', aspect() < .9);
+  if (S.brush && !isDesk()) openSheet(false);
   if (isDesk() && aspect() < .9) {
     const h = window.innerHeight - 60, w = clamp(h * aspect() + 32, 300, window.innerWidth * .45);
     shell.style.setProperty('--vcol', Math.round(w) + 'px');
@@ -753,8 +793,8 @@ function layoutViewer() {
   requestAnimationFrame(fitStage);
 }
 function fitStage() {
-  const r = $('vwrap').getBoundingClientRect(), pad = 16;
-  const aw = Math.max(40, r.width - pad), ah = Math.max(40, r.height - pad);
+  const r = $('vwrap').getBoundingClientRect(), pad = 16, phone = !isDesk(), port = aspect() < .9;
+  const so = shell.classList.contains('sheet-open'), aw = Math.max(40, r.width - pad - (phone && port ? (so ? 104 : 140) : 0)), ah = Math.max(40, r.height - pad - (phone && !port ? (so ? 52 : 56) : 0));
   let w = aw, h = aw / aspect(); if (h > ah) { h = ah; w = ah * aspect(); }
   stage.style.width = Math.floor(w) + 'px'; stage.style.height = Math.floor(h) + 'px';
   sizeOverlay(); if (S.busy !== 'export') sizeCanvas();
@@ -1191,13 +1231,39 @@ function selectLayer(id) {
   S.sel = id; renderCapas(); renderBody(); markTray();
   document.querySelectorAll('#rows .trow[data-id]').forEach(r => r.setAttribute('aria-current', +r.dataset.id === id));
 }
-function setTab(t) {
+const SHEET_T = { capas: 'Capas', color: 'Color', retoque: 'Retoque', ajustes: 'Máscara' };
+function setTab(t, open = true) {
   if (isDesk() && t === 'capas') t = 'color';
   S.tab = t; shell.dataset.tab = t;
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
+  if (!isDesk() && open) openSheet(true);
+  paintTools();
   renderBody();
 }
+function openSheet(on) {
+  S.sheet = on; shell.classList.toggle('sheet-open', !!on);
+  $('sheetTitle').textContent = SHEET_T[S.tab] || '';
+  paintTools(); requestAnimationFrame(() => { fitStage(); sizeTray(); });
+}
+function paintTools() {
+  document.querySelectorAll('#tools .tool').forEach(b => b.setAttribute('aria-pressed', !!S.sheet && b.dataset.t === S.tab));
+}
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.t));
+document.querySelectorAll('#tools .tool').forEach(b => b.onclick = () => { if (S.sheet && S.tab === b.dataset.t) openSheet(false); else setTab(b.dataset.t); });
+$('sheetClose').onclick = () => openSheet(false);
+function placePanels() {
+  const desk = isDesk(), sb = $('sheetBody');
+  [$('p-capas'), $('p-body')].forEach(p => { const tgt = desk ? shell : sb; if (p.parentElement !== tgt) tgt.appendChild(p); });
+  if (desk) shell.classList.remove('sheet-open');
+}
+function buildRail() {
+  const r = $('rail'); r.innerHTML = '';
+  const mk = (lab, ico, fn) => { const b = el('button', 'rbtn', ico + `<span>${lab}</span>`); b.setAttribute('aria-label', lab); b.onclick = fn; r.appendChild(b); };
+  mk('Detectar', ICO.scan, () => { openSheet(false); detectAll(); });
+  mk('Persona', ICO.tap, () => { if (!isVideo()) { toast('Primero importa tu video.'); return; } if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para añadir otra.'); return; } openSheet(false); S.pick = { mode: 'new' }; toast('Toca a la persona en el visor.'); });
+  mk('Pincel', ICO.brush, () => { openSheet(false); startBrush(null); });
+  mk('Óvalo', ICO.oval, () => { if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para añadir otra.'); return; } const L = ovalLayer(); S.layers.push(L); selectLayer(L.id); sizeTray(); setTab('ajustes'); });
+}
 function coverage(L) {
   if (L.kind !== 'persona') return 0;
   if (L.demo) return 1;
@@ -1476,7 +1542,7 @@ function openPartMenu(tid) {
       if (exists) { selectLayer(exists.id); return; }
       if (k === 'pincel') { startBrush(tid); return; }
       const L = personLayer({ tids: [tid], part: k }); S.layers.push(L); S.maskVer++; selectLayer(L.id); sizeTray();
-      if (!isDesk()) setTab(k === 'rostro' || k === 'piel' ? 'retoque' : 'color');
+      setTab(k === 'rostro' || k === 'piel' ? 'retoque' : 'color');
       toast(`${L.name} creada.`);
     };
     grid.appendChild(b);
@@ -1493,6 +1559,7 @@ function startBrush(tid) {
   if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para crear otra.'); return; }
   if (S.playing) togglePlay(false);
   S.pick = null; closePartMenu();
+  openSheet(false);
   S.brush = { tid, size: +(store.get('cc-brush') || .035), strokes: [], down: false };
   $('brushSize').value = S.brush.size; $('brushBar').hidden = false;
   toast(tid ? 'Pinta encima de la prenda o parte que quieres. No hace falta ser exacto: la IA ajusta el borde.' : 'Pinta encima de la prenda u objeto. La IA reconoce su forma y lo sigue.', 6500);
@@ -1579,7 +1646,7 @@ $('file').addEventListener('change', e => {
     AN = null;
     $('badge').textContent = f.name;
     $('meta').textContent = `${S.w}×${S.h} · ${secs(D)}`;
-    layoutViewer(); paintTrim(); renderCapas(); renderTrayHead(); setTab(isDesk() ? 'color' : 'capas');
+    layoutViewer(); paintTrim(); renderCapas(); renderTrayHead(); setTab(isDesk() ? 'color' : 'capas', false); openSheet(false);
     video.currentTime = 0;
     makeThumbs(url);
     requestAnimationFrame(sizeTray);
@@ -2181,7 +2248,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '10';
+const APP_VERSION = '11';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
@@ -2246,9 +2313,10 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 let lastDesk = isDesk();
-new ResizeObserver(() => { layoutViewer(); sizeTray(); const d = isDesk(); if (d !== lastDesk) { lastDesk = d; setTab(S.tab); renderTrayHead(); } }).observe(shell);
-window.addEventListener('resize', () => { const d = isDesk(); if (d !== lastDesk) { lastDesk = d; setTab(S.tab); renderTrayHead(); } });
-layoutViewer(); renderCapas(); setTab(isDesk() ? 'color' : 'capas'); paintPlay(); paintTrim(); renderTrayHead(); makeThumbs(); sizeTray();
+const onLayout = () => { const d = isDesk(); if (d !== lastDesk) { lastDesk = d; placePanels(); setTab(S.tab, false); renderTrayHead(); } };
+new ResizeObserver(() => { onLayout(); layoutViewer(); sizeTray(); }).observe(shell);
+window.addEventListener('resize', onLayout);
+placePanels(); buildRail(); layoutViewer(); renderCapas(); setTab(isDesk() ? 'color' : 'capas', false); paintPlay(); paintTrim(); renderTrayHead(); makeThumbs(); sizeTray();
 requestAnimationFrame(loop);
 })();
 
