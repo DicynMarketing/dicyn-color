@@ -681,14 +681,49 @@ function fillMask(idx, t) {
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texM); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, S.mw, S.mh, 0, gl.RGBA, gl.UNSIGNED_BYTE, mbuf);
 }
 
+
+/* ---- lector de cuadros del video sin "canvas contaminado" (Safari/Chrome en app instalada) ---- */
+const RD = (() => {
+  const c = document.createElement('canvas'); const g = c.getContext('webgl', { preserveDrawingBuffer: true, premultipliedAlpha: false });
+  if (!g) return null;
+  const vs = g.createShader(g.VERTEX_SHADER); g.shaderSource(vs, 'attribute vec2 a;varying vec2 v;void main(){v=vec2((a.x+1.)*.5,(a.y+1.)*.5);gl_Position=vec4(a,0.,1.);}'); g.compileShader(vs);
+  const fs = g.createShader(g.FRAGMENT_SHADER); g.shaderSource(fs, 'precision mediump float;varying vec2 v;uniform sampler2D t;void main(){gl_FragColor=texture2D(t,vec2(v.x,1.-v.y));}'); g.compileShader(fs);
+  const p = g.createProgram(); g.attachShader(p, vs); g.attachShader(p, fs); g.linkProgram(p); g.useProgram(p);
+  g.bindBuffer(g.ARRAY_BUFFER, g.createBuffer()); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), g.STATIC_DRAW);
+  const al = g.getAttribLocation(p, 'a'); g.enableVertexAttribArray(al); g.vertexAttribPointer(al, 2, g.FLOAT, false, 0, 0);
+  const tx = g.createTexture(); g.bindTexture(g.TEXTURE_2D, tx);
+  [g.TEXTURE_MIN_FILTER, g.TEXTURE_MAG_FILTER].forEach(k => g.texParameteri(g.TEXTURE_2D, k, g.LINEAR));
+  g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
+  return { c, g };
+})();
+let useRD = false;
+function readFrame(src, w, h) {
+  // devuelve RGBA (filas de arriba a abajo) del cuadro actual escalado a w×h
+  if (!useRD) {
+    try {
+      const cv = readFrame.cv || (readFrame.cv = document.createElement('canvas'));
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(src, 0, 0, w, h);
+      return x.getImageData(0, 0, w, h).data;
+    } catch (e) { if (!RD) throw e; useRD = true; }
+  }
+  const { c, g } = RD;
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  g.viewport(0, 0, w, h);
+  g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, g.RGBA, g.UNSIGNED_BYTE, src);
+  g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+  const raw = new Uint8Array(w * h * 4), out = new Uint8ClampedArray(w * h * 4);
+  g.readPixels(0, 0, w, h, g.RGBA, g.UNSIGNED_BYTE, raw);
+  const row = w * 4; for (let y = 0; y < h; y++) out.set(raw.subarray((h - 1 - y) * row, (h - y) * row), y * row);
+  return out;
+}
+
 /* ---- colores del cuadro actual (resolución de máscara) ---- */
 const colC = document.createElement('canvas'); let colData = null, colKey = '';
 function frameColors(key) {
   if (colKey === key && colData) return colData;
   if (colC.width !== S.mw || colC.height !== S.mh) { colC.width = S.mw; colC.height = S.mh; }
-  const g = colC.getContext('2d', { willReadFrequently: true });
-  g.drawImage(isVideo() ? video : demo, 0, 0, S.mw, S.mh);
-  colData = g.getImageData(0, 0, S.mw, S.mh).data; colKey = key; return colData;
+  colData = readFrame(isVideo() ? video : demo, S.mw, S.mh); colKey = key; return colData;
 }
 const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function skinScore(r, g, b) {
@@ -1696,7 +1731,8 @@ const snapC = document.createElement('canvas'), poseC = document.createElement('
 let lb = null;
 function snap() {
   if (snapC.width !== S.mw || snapC.height !== S.mh) { snapC.width = S.mw; snapC.height = S.mh; }
-  snapC.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0, S.mw, S.mh);
+  const d = readFrame(video, S.mw, S.mh);
+  snapC.getContext('2d', { willReadFrequently: true }).putImageData(new ImageData(d instanceof Uint8ClampedArray ? d : new Uint8ClampedArray(d.buffer), S.mw, S.mh), 0, 0);
 }
 function snapPose() {
   const sc = PN / Math.max(S.w, S.h), dw = S.w * sc, dh = S.h * sc; lb = { ox: (PN - dw) / 2, oy: (PN - dh) / 2, dw, dh };
@@ -2041,7 +2077,7 @@ async function trackOval(L) {
   const vw = video.videoWidth, vh = video.videoHeight, SW = 256, SH = Math.round(SW * vh / vw);
   const c = document.createElement('canvas'); c.width = SW; c.height = SH;
   const x = c.getContext('2d', { willReadFrequently: true });
-  const grab = () => { x.drawImage(video, 0, 0, SW, SH); const d = x.getImageData(0, 0, SW, SH).data, g = new Float32Array(SW * SH); for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = d[j] * .299 + d[j + 1] * .587 + d[j + 2] * .114; return g; };
+  const grab = () => { const d = readFrame(video, SW, SH), g = new Float32Array(SW * SH); for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = d[j] * .299 + d[j + 1] * .587 + d[j + 2] * .114; return g; };
   const t0 = curT(), last = S.clips[S.clips.length - 1].b, step = 1 / 15, p0 = posAt(L, t0);
   let px = p0.x * SW, py = p0.y * SH;
   const hw = clamp(Math.round(L.rx * SH * .6), 5, 26), hh = clamp(Math.round(L.ry * SH * .6), 5, 26), TW = 2 * hw + 1, TH = 2 * hh + 1;
@@ -2264,7 +2300,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '14';
+const APP_VERSION = '15';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
