@@ -196,7 +196,8 @@ a.btn{text-decoration:none;color:inherit}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--raise2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:calc(100% - 32px);font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 
 @media (max-width:899px){.partmenu{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:70vh;z-index:15}.trow:not(.video) .tlab .nm{display:none}.trow.video{height:40px}.trow.video .tbar{height:36px}.tlab{padding:0 4px 0 8px;gap:4px}.trow.video .tlab .nm{font-size:11px}}
-@media (max-width:420px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
+@media (max-width:480px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
+@media (max-width:899px){.shell.portrait .badge{display:none}}
 @media (min-width:900px){
   :root{--trayh:210px;--labw:150px}
   .shell{grid-template-columns:270px minmax(0,1fr) 340px;grid-template-rows:auto auto minmax(0,1fr) var(--trayh);
@@ -1107,8 +1108,11 @@ $('trk').addEventListener('pointerup', trayEnd); $('trk').addEventListener('poin
 async function makeThumbs(url) {
   S.thumbs = []; const N = 24, tw = 120, th = Math.max(20, Math.round(tw / aspect()));
   if (!isVideo()) { for (let i = 0; i < N; i++) { const c = document.createElement('canvas'); c.width = tw; c.height = th; drawDemoTo(c.getContext('2d'), (i + .5) / N * S.demoDur, tw, th); S.thumbs.push(c); } markTray(); return; }
-  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
-  await new Promise(r => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 5000); });
+  const v = document.createElement('video'); v.muted = true; v.defaultMuted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.preload = 'auto'; v.src = url;
+  v.load();
+  // Safari en iPhone no carga el video hasta que se reproduce: se reproduce en silencio un instante
+  try { await v.play(); v.pause(); } catch (e) {}
+  await new Promise(r => { if (v.readyState >= 2) return r(); v.onloadeddata = r; v.onerror = r; setTimeout(r, 5000); });
   for (let i = 0; i < N; i++) {
     if (video.src !== url) return;
     await new Promise(r => { const to = setTimeout(r, 2500); v.onseeked = () => { clearTimeout(to); r(); }; v.currentTime = (i + .5) / N * (v.duration || 1); });
