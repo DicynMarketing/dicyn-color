@@ -491,7 +491,7 @@ a.btn{text-decoration:none;color:inherit}
 <script>
 (() => {
 const $ = id => document.getElementById(id);
-const FPS = 30, MAXL = 4, MLONG = 576, RATIO = 0.5, PN = 256;
+const FPS = 30, MAXL = 4, MLONG = 576, RATIO = 0.8, PN = 256;
 const COLORS = ['#f2a03d', '#3fc7d9', '#e05fc4', '#9bd34a'];
 let video = $('vid'); const glc = $('gl'), ov = $('ov'), stage = $('stage'), shell = $('shell');
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -724,8 +724,8 @@ vec3 enhance(vec3 c,vec3 c0){
 void main(){uv=(v-FT.zw)/FT.xy;if(uv.x<0.||uv.y<0.||uv.x>1.||uv.y>1.){gl_FragColor=vec4(0.,0.,0.,1.);return;}vec3 c0=texture2D(T,uv).rgb;
  if(byp>.5){gl_FragColor=vec4(c0,1.);return;}
  vec4 mk=vec4(0.);float wsum=0.;float pa=0.;
- for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 o=vec2(float(i),float(j))*mts;vec3 cc=texture2D(T,uv+o).rgb-c0;
-  float w=exp(-dot(cc,cc)*45.)*((i==0&&j==0)?2.:1.);mk+=texture2D(MA,uv+o)*w;if(BG.w>.5)pa+=texture2D(PA,uv+o).r*w;wsum+=w;}
+ for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){if(i*i+j*j>5)continue;vec2 o=vec2(float(i),float(j))*mts*.85;vec3 cc=texture2D(T,uv+o).rgb-c0;
+  float w=exp(-dot(cc,cc)*85.-float(i*i+j*j)*.3)*((i==0&&j==0)?1.5:1.);mk+=texture2D(MA,uv+o)*w;if(BG.w>.5)pa+=texture2D(PA,uv+o).r*w;wsum+=w;}
  mk/=wsum;pa/=wsum;
  vec4 mm=vec4(0.);
  for(int i=0;i<4;i++){if(i>=n)break;float m;
@@ -1200,12 +1200,13 @@ function setTime(t) {
   t = clamp(t, 0, srcDur());
   if (isVideo()) { video.currentTime = t; if (!hasRVFC || video.paused) S.vt = t; } else S.demoT = t;
 }
-const setEdited = te => { const r = e2s(clamp(te, 0, editDur())); S.ci = r.ci; const c = S.clips[r.ci]; if (c) useSource(c.src); S.pend = null; setTime(r.t); };
+const setEdited = te => { if (te < editDur() - 4 / FPS) S.atEnd = false; const r = e2s(clamp(te, 0, editDur())); S.ci = r.ci; const c = S.clips[r.ci]; if (c) useSource(c.src); S.pend = null; setTime(r.t); };
 function togglePlay(force) {
   const want = force === undefined ? !S.playing : force;
   if (want) {
     const te = s2e(curT());
-    if (te >= editDur() - 1.5 / FPS) setEdited(0); else setEdited(te);
+    if (S.atEnd || te >= editDur() - 4 / FPS) setEdited(0); else setEdited(te);
+    S.atEnd = false;
   }
   S.playing = want;
   if (want && isVideo()) S.sources.forEach(s => { if (s.el === video || s.unlocked) return; s.el.muted = true; const p = s.el.play(); if (p) p.then(() => { if (s.el !== video) s.el.pause(); s.el.muted = false; s.unlocked = true; }).catch(() => { s.el.muted = false; }); });
@@ -1214,7 +1215,7 @@ function togglePlay(force) {
 }
 function paintPlay() { [$('playBtn'), $('shPlay')].forEach(b => { b.innerHTML = S.playing ? ICON_PAUSE : ICON_PLAY; b.setAttribute('aria-label', S.playing ? 'Pausar' : 'Reproducir'); }); }
 $('playBtn').onclick = $('shPlay').onclick = () => { if (!S.busy) togglePlay(); };
-function stopAtEnd() { S.playing = false; if (isVideo()) video.pause(); paintPlay(); S.ci = S.clips.length - 1; S.pend = null; const last = S.clips[S.ci]; useSource(last.src); setTime(Math.max(last.a, last.b - 1 / FPS)); }
+function stopAtEnd() { S.atEnd = true; S.playing = false; if (isVideo()) video.pause(); paintPlay(); S.ci = S.clips.length - 1; S.pend = null; const last = S.clips[S.ci]; useSource(last.src); setTime(Math.max(last.a, last.b - 1 / FPS)); }
 function playGuard(t) {
   if (!S.playing || S.busy) return;
   if (S.pend != null) { if (Math.abs(t - S.pend) < .2) S.pend = null; else return; }
@@ -2188,7 +2189,7 @@ function addSource(f) {
     el2.addEventListener('error', fail, { once: true });
     el2.addEventListener('loadedmetadata', () => {
       el2.removeEventListener('error', fail);
-      const w = el2.videoWidth, h = el2.videoHeight, D = el2.duration || 0, afps = D > 60 ? 15 : FPS, [mw, mh] = maskDims(w, h);
+      const w = el2.videoWidth, h = el2.videoHeight, D = el2.duration || 0, afps = D <= 15 ? 60 : D > 60 ? 15 : FPS, [mw, mh] = maskDims(w, h);
       const so = { id: srcUid++, name: f.name, file: f, url, el: el2, w, h, dur: D, afps, nf: Math.floor(D * afps) + 1, mw, mh, AN: null, thumbs: [] };
       attachVideo(el2); S.sources.push(so); res(so);
     }, { once: true });
@@ -2487,6 +2488,14 @@ function storeFrame(pha, label, inst) {
   for (let y = 0; y < h; y++) { const s = (y0 + y) * W + x0, d = y * w; for (let x = 0; x < w; x++) { const l = label[s + x]; if (l) { lb2[d + x] = l; al[d + x] = pha[s + x] * 255 + .5; } } }
   return { x0, y0, w, h, alpha: al, label: lb2, poses };
 }
+function measureFrameDur() {
+  return new Promise(res => {
+    const t0 = video.currentTime, ts = [], m = video.muted; let done = false;
+    const end = v => { if (done) return; done = true; video.pause(); video.muted = m; seek(t0).then(() => res(v)); };
+    const cb = (now, meta) => { ts.push(meta.mediaTime); if (ts.length >= 5) { const d = []; for (let i = 1; i < ts.length; i++) if (ts[i] > ts[i - 1]) d.push(ts[i] - ts[i - 1]); d.sort((a, b) => a - b); end(d.length ? d[0] : 1 / FPS); } else video.requestVideoFrameCallback(cb); };
+    video.muted = true; video.requestVideoFrameCallback(cb); video.play().catch(() => end(1 / FPS)); setTimeout(() => end(1 / FPS), 2500);
+  });
+}
 async function analyze() {
   if (S.busy) return false;
   if (AN && !missingFrames().length) return true;
@@ -2497,6 +2506,11 @@ async function analyze() {
   try {
     await seek(keepT);
     E = await ensureAI();
+    if (!AN && hasRVFC && S.afps > 40) {
+      // ajusta el análisis a los fotogramas reales del video (30 o 60 por segundo)
+      const fd = await measureFrameDur();
+      if (fd > 1 / 45) { const so = srcById(S.cur); S.afps = FPS; S.nf = Math.floor((video.duration || 0) * FPS) + 1; if (so) { so.afps = S.afps; so.nf = S.nf; } }
+    }
     if (!AN) AN = { frames: [], tracker: newTracker(), tracks: null, ver: 0 };
     if (S.mw * S.mh * keptIndices().length > 1.6e8) toast('Video largo: el análisis tardará y usará bastante memoria. Recorta lo que no necesites.', 7000);
     AN.tracks = AN.tracker.tracks;
@@ -2531,7 +2545,7 @@ async function analyze() {
           video.addEventListener('ended', fin, { once: true });
           const handle = t => {
             const idx = Math.round(t * S.afps);
-            if (!need.has(idx) || Math.abs(t * S.afps - idx) > .45) return null;
+            if (!need.has(idx) || (S.afps < 40 && Math.abs(t * S.afps - idx) > .45)) return null;
             video.pause(); snap();
             return process(idx);
           };
@@ -2831,7 +2845,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '22';
+const APP_VERSION = '23';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
