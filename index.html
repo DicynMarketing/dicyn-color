@@ -2473,25 +2473,42 @@ function ghosts(tr, inst, pha, idx) {
 function mergeTracks(A) {
   if (!A || !A.tracks) return;
   const owned = new Set(); S.layers.forEach(L => L.tids && L.src === S.cur && L.tids.forEach(id => owned.add(id)));
-  const T = [...A.tracks.values()].filter(t => t.first != null).sort((a, b) => a.first - b.first);
-  const map = new Map(), root = id => { while (map.has(id)) id = map.get(id); return id; };
-  for (const b of T) {
-    if (owned.has(b.tid)) continue;
-    let best = null, bs = 1e9;
-    for (const a0 of T) {
-      const a = A.tracks.get(root(a0.tid)); if (!a || a.tid === b.tid || a.first >= b.first || a.last >= b.first + 2) continue;
-      const gap = b.first - a.last; if (gap > S.afps * 3) continue;
-      const w = Math.max(a.box[2] - a.box[0], b.fbox[2] - b.fbox[0], .05);
-      const d = Math.hypot((a.box[0] + a.box[2] - b.fbox[0] - b.fbox[2]) / 2, (a.box[1] + a.box[3] - b.fbox[1] - b.fbox[3]) / 4) / w;
-      const sc = d + gap / (S.afps * 6); if (d < 1.1 && sc < bs) { bs = sc; best = a; }
+  // dónde estuvo cada identidad, cuadro a cuadro
+  const at = new Map();
+  A.frames.forEach((f, idx) => { if (!f) return; f.poses.forEach(p => { if (!p.box || p.ghost) return; let m = at.get(p.tid); if (!m) at.set(p.tid, m = new Map()); m.set(idx, p.box); }); });
+  const parent = new Map(), root = id => { while (parent.has(id)) id = parent.get(id); return id; };
+  const cnt = id => (at.get(id) || new Map()).size;
+  const same = (ma, mb) => {
+    let co = 0, ok = 0, bad = 0;
+    mb.forEach((bb, i) => {
+      if (ma.has(i)) { co++; return; }
+      let ba = null; for (let d = 1; d <= S.afps * 2 && !ba; d++) ba = ma.get(i - d) || ma.get(i + d);
+      if (!ba) return;
+      const w = Math.max(ba[2] - ba[0], bb[2] - bb[0], .05);
+      const dist = Math.hypot((ba[0] + ba[2] - bb[0] - bb[2]) / 2, (ba[1] + ba[3] - bb[1] - bb[3]) / 4) / w;
+      if (dist < .7) ok++; else bad++;
+    });
+    return co <= 2 && ok >= 1 && ok >= bad * 3;
+  };
+  for (let pass = 0; pass < 3; pass++) {
+    const ids = [...at.keys()].map(root).filter((v, k, a) => a.indexOf(v) === k).sort((a, b) => cnt(b) - cnt(a));
+    let changed = false;
+    for (let x = 0; x < ids.length; x++) for (let y = x + 1; y < ids.length; y++) {
+      const a = root(ids[x]), b = root(ids[y]); if (a === b || owned.has(b)) continue;
+      const ma = at.get(a), mb = at.get(b); if (!ma || !mb) continue;
+      if (!same(ma, mb)) continue;
+      mb.forEach((v, k) => { if (!ma.has(k)) ma.set(k, v); }); at.delete(b); parent.set(b, a); changed = true;
+      const ta = A.tracks.get(a), tb = A.tracks.get(b);
+      if (ta && tb) { ta.count += tb.count; ta.sx += tb.sx; ta.area += tb.area; ta.first = Math.min(ta.first, tb.first); if (tb.last > ta.last) { ta.last = tb.last; ta.box = tb.box; ta.kps = tb.kps; } }
+      A.tracks.delete(b);
     }
-    if (!best) continue;
-    map.set(b.tid, best.tid);
-    best.last = Math.max(best.last, b.last); best.box = b.box; best.count += b.count; best.sx += b.sx; best.area += b.area; A.tracks.delete(b.tid);
+    if (!changed) break;
   }
-  if (!map.size) return;
+  if (!parent.size) return;
   const lut = new Uint8Array(256); for (let i = 0; i < 256; i++) lut[i] = root(i);
-  A.frames.forEach(f => { if (!f) return; f.poses.forEach(p => p.tid = lut[p.tid]); if (f.label) for (let i = 0; i < f.label.length; i++) f.label[i] = lut[f.label[i]]; });
+  A.frames.forEach(f => { if (!f) return; f.poses.forEach(p => p.tid = lut[p.tid]);
+    const seen = new Set(); f.poses = f.poses.filter(p => { if (seen.has(p.tid)) return false; seen.add(p.tid); return true; });
+    if (f.label) for (let i = 0; i < f.label.length; i++) f.label[i] = lut[f.label[i]]; });
 }
 function newTracker() {
   const tracks = new Map(); let next = 1;
@@ -2536,11 +2553,11 @@ function keptIndices() {
   S.clips.forEach(c => { if (isVideo() && c.src !== S.cur) return; for (let i = Math.ceil(c.a * S.afps - .01); i <= Math.min(S.nf - 1, Math.floor(c.b * S.afps + .01)); i++) out.push(i); });
   return out;
 }
-function missingFrames() { if (!AN) return keptIndices(); const f = AN.frames; return keptIndices().filter(i => !f[i] && !f[i - 1] && !f[i + 1]); }
+function missingFrames() { if (!AN) return keptIndices(); const f = AN.frames; return keptIndices().filter(i => !f[i]); }
 function storeFrame(pha, label, inst) {
   const W = S.mw, H = S.mh; let x0 = W, y0 = H, x1 = -1, y1 = -1;
   for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) if (label[o + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
-  const poses = inst.map(p => ({ tid: p.tid, face: faceOf(p), top: topOf(p), kps: p.kps }));
+  const poses = inst.map(p => ({ tid: p.tid, face: faceOf(p), top: topOf(p), kps: p.kps, box: p.box, ghost: p.ghost || 0 }));
   if (x1 < 0) return { x0: 0, y0: 0, w: 0, h: 0, alpha: null, label: null, poses };
   const w = x1 - x0 + 1, h = y1 - y0 + 1, al = new Uint8Array(w * h), lb2 = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) { const s = (y0 + y) * W + x0, d = y * w; for (let x = 0; x < w; x++) { const l = label[s + x]; if (l) { lb2[d + x] = l; al[d + x] = pha[s + x] * 255 + .5; } } }
@@ -2576,9 +2593,12 @@ async function analyze() {
     const need = new Set(missingFrames()), total = need.size;
     showModal('Analizando personas', 'Preparando la IA…');
     video.muted = true; video.pause();
-    let done = 0, prevInst = null, jump = true, prevLab = null;
+    let done = 0, prevInst = null, jump = true, prevLab = null, prevPha = null;
     const process = async idx => {
       const pha = await E.matte(st);
+      // estabiliza el borde: donde casi no cambió respecto al cuadro anterior, promedia (quita el parpadeo sin retrasar el movimiento)
+      if (prevPha && prevPha.idx === idx - 1 && prevPha.a.length === pha.length) { const q = prevPha.a; for (let i = 0; i < pha.length; i++) { const d = pha[i] - q[i]; if (d < .2 && d > -.2) pha[i] = pha[i] * .6 + q[i] * .4; } }
+      prevPha = { idx, a: Float32Array.from(pha) };
       let inst = poseM ? await runPose() : [];
       if (!inst.length) inst = compInstances(pha);
       tr.assign(inst, idx, jump); jump = false;
@@ -2626,10 +2646,10 @@ async function analyze() {
         if (err) throw err;
       }
       // cuadros que se saltó la reproducción: uno a uno
-      const rest = []; for (let i = lo; i <= hi; i++) if (need.has(i) && !frames[i - 1] && !frames[i + 1]) rest.push(i);
+      const rest = []; for (let i = lo; i <= hi; i++) if (need.has(i) && !frames[i]) rest.push(i);
       if (rest.length && !S.cancel) {
         E.free(st); st = E.newState(); prevInst = null; jump = true;
-        for (const i of rest) { if (S.cancel) break; await seek(Math.min(i / S.afps, video.duration - .02)); if (video.requestVideoFrameCallback) await new Promise(r => { const t = setTimeout(r, 120); video.requestVideoFrameCallback(() => { clearTimeout(t); r(); }); }); snap(); if (jump) for (let k = 0; k < E.reps - 1; k++) await E.matte(st); prevLab = null; await process(i); }
+        let lastI = -9; for (const i of rest) { if (S.cancel) break; if (i !== lastI + 1) { E.free(st); st = E.newState(); jump = true; } lastI = i; await seek(Math.min(i / S.afps, video.duration - .02)); if (video.requestVideoFrameCallback) await new Promise(r => { const t = setTimeout(r, 120); video.requestVideoFrameCallback(() => { clearTimeout(t); r(); }); }); snap(); if (jump) for (let k = 0; k < E.reps - 1; k++) await E.matte(st); prevLab = null; await process(i); }
       }
     }
     mergeTracks(AN);
@@ -2905,7 +2925,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '27';
+const APP_VERSION = '28';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
