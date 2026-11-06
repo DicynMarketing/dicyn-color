@@ -188,6 +188,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 a.btn{text-decoration:none;color:inherit}
 .empty-st{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:20px;background:radial-gradient(circle at 50% 40%,#1c1f24,#0b0c0e)}
 .empty-st b{font-family:var(--display);font-size:17px}
+.empty-st svg{width:46px;height:46px;color:var(--muted)}
 .empty-st span{color:var(--muted);font-size:13px}
 .shell.empty .empty-st{display:flex}
 .shell.empty .stage{position:absolute!important;inset:8px;width:auto!important;height:auto!important;transform:none!important}
@@ -254,6 +255,21 @@ a.btn{text-decoration:none;color:inherit}
 .mms{border:0;background:var(--raise);border-radius:9px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;cursor:pointer}
 .mms svg{width:20px;height:20px}
 .qt.add{border-style:dashed;color:var(--muted)}
+.hbtn{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font:600 11px/1 var(--body);font-style:italic;display:inline-grid;place-items:center;cursor:pointer;padding:0;opacity:.75}
+.hbtn:hover{opacity:1;color:var(--fg)}
+.helppop{position:fixed;z-index:40;width:280px;background:var(--raise2);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:var(--fg);box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.splash{position:fixed;inset:0;z-index:45;background:var(--bg);display:grid;place-content:center;justify-items:center;gap:14px;transition:opacity .4s}
+.splash.out{opacity:0}
+.splash .upd-logo b{animation-duration:.9s}
+.lcards{gap:8px!important}
+.lcard{flex:none;width:118px;display:grid;grid-template-columns:auto 1fr;gap:2px 7px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--raise);border-radius:10px;padding:8px 9px;cursor:pointer}
+.lcard .dot{width:10px;height:10px;border-radius:50%;grid-row:span 2}
+.lcard b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcard small{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcard[aria-pressed="true"]{border-color:var(--fg);background:var(--raise2)}
+.lcard.off{opacity:.5}
+.lacts{gap:6px!important}
+.lacts .btn{flex:none}
 .trk{overflow-x:auto!important}
 .trk .tlab{position:sticky;left:0;z-index:3;background:var(--panel)}
 .trow.ruler .tbar{touch-action:pan-x}
@@ -269,7 +285,8 @@ a.btn{text-decoration:none;color:inherit}
 .opt input{accent-color:var(--accent);width:18px;height:18px;margin:0}
 .opt b{font-weight:600}
 .opt small{color:var(--muted);font-family:var(--display);font-variant-numeric:tabular-nums}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--raise2);border:1px solid var(--line);padding:10px 14px;border-radius:8px;max-width:calc(100% - 32px);font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(58px + env(safe-area-inset-top,0px));z-index:30;background:rgba(41,45,51,.94);border:1px solid var(--line);padding:6px 12px;border-radius:999px;max-width:calc(100% - 48px);font-size:12px;font-weight:600;line-height:1.35;box-shadow:0 6px 16px rgba(0,0,0,.35);pointer-events:none;transition:opacity .25s}
+.toast.out{opacity:0}
 
 @media (max-width:899px){.partmenu{position:fixed;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-height:70vh;z-index:15}.trow:not(.video) .tlab .nm{display:none}.trow.video{height:40px}.trow.video .tbar{height:36px}.tlab{padding:0 4px 0 8px;gap:4px}.trow.video .tlab .nm{font-size:11px}}
 @media (max-width:480px){.brand{font-size:14px}.top .btn{padding:7px 9px}.meta{display:none}}
@@ -383,7 +400,7 @@ a.btn{text-decoration:none;color:inherit}
         <canvas id="gl"></canvas>
         <canvas id="ov"></canvas>
         <span class="badge" id="badge"></span>
-        <div class="empty-st"><div class="upd-logo sm" aria-hidden="true"><b></b><b></b><b></b></div><b>Importa un video para empezar</b><span>Vertical (reel) u horizontal (cine)</span><button class="btn primary" id="emptyImport">Importar video</button></div>
+        <div class="empty-st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4-2.5z" fill="currentColor"/></svg><b>Importa un clip para empezar</b><button class="btn primary" id="emptyImport">Importar clip</button></div>
         <div class="vtools">
           <button class="vbtn" id="cmpBtn" title="Mantén pulsado para ver el original">Antes</button>
           <button class="vbtn" id="maskBtn" aria-pressed="true" title="Oscurecer lo que no es la capa elegida">Máscara</button>
@@ -413,7 +430,7 @@ a.btn{text-decoration:none;color:inherit}
   <aside class="capas" id="p-capas"></aside>
   <section class="body" id="p-body"></section>
   <section class="sheet" id="sheet" aria-label="Herramientas">
-    <div class="sheethead"><button class="play sm" id="shPlay" aria-label="Reproducir"></button><span class="tc" id="shTc">00:00:00</span><b id="sheetTitle"></b><button class="btn sm primary" id="sheetClose">Listo</button></div>
+    <div class="sheethead"><button class="play sm" id="shPlay" aria-label="Reproducir"></button><span class="tc" id="shTc">00:00:00</span><b id="sheetTitle"></b><button class="hbtn" id="sheetHelp" aria-label="Ayuda">i</button><button class="btn sm primary" id="sheetClose">Listo</button></div>
     <div class="sheetbody" id="sheetBody"></div>
   </section>
   <nav class="tools" id="tools" aria-label="Herramientas de edición"></nav>
@@ -456,6 +473,8 @@ a.btn{text-decoration:none;color:inherit}
   <div class="upd-bar"><i></i></div>
   <div class="upd-ver" id="updVer"></div>
 </div>
+<div class="splash" id="splash"><div class="upd-logo" aria-hidden="true"><b></b><b></b><b></b></div><div class="upd-name">DiCyn Color</div></div>
+<div class="helppop" id="helpPop" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <video id="vid" playsinline preload="auto" hidden></video>
 <script src="mp4-muxer.js"></script>
@@ -1072,17 +1091,17 @@ function useTid(tid, mode, layer) {
   if (mode === 'add' && layer) {
     if (owner === layer) { toast('Esa parte ya es de ' + layer.name + '.'); return; }
     if (owner) owner.tids = owner.tids.filter(x => x !== tid);
-    layer.tids.push(tid); S.maskVer++; selectLayer(layer.id); toast('Añadido a ' + layer.name + '.'); sizeTray(); return;
+    layer.tids.push(tid); S.maskVer++; selectLayer(layer.id); toast('Añadido a ' + layer.name); sizeTray(); return;
   }
   if (owner) { selectLayer(owner.id); return; }
   if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para añadir otra persona.'); return; }
   const L = personLayer({ tids: [tid] }); S.layers.push(L); S.maskVer++;
   selectLayer(L.id); sizeTray();
-  toast(L.name + ' creada. Ajusta su color en la pestaña Color.');
+  toast(L.name + ' creada');
 }
 let drag = null;
 ov.addEventListener('pointerdown', async e => {
-  closeMaskMenu();
+  closeMaskMenu(); if (S.selClip >= 0 && !S.busy) deselectClip();
   if (S.busy || S.compare) return;
   const r = rect(), u = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }, t = curT();
   if (S.brush) { brushDown(e, u); return; }
@@ -1186,13 +1205,13 @@ function deleteClip() {
   const te = clipOffset(i);
   S.clips.splice(i, 1); S.selClip = -1; openSheet(false);
   setEdited(Math.min(te, editDur() - 1 / FPS));
-  afterClips(); toast('Clip eliminado.');
+  afterClips(); toast('Clip eliminado');
 }
 function restoreAll() { S.clips = [newClip(0, srcDur())]; S.selClip = -1; S.ci = 0; afterClips(); }
 function afterClips() { renderTrayHead(); paintTrim(); markTray(); renderCapas(); buildTools(); if (S.tab && S.tab.startsWith('c-')) renderBody(); }
 function duplicateClip() {
   const i = S.selClip; if (i < 0) return;
-  const c = S.clips[i], d = newClip(c.a, c.b, c); S.clips.splice(i + 1, 0, d); S.selClip = i + 1; afterClips(); toast('Clip duplicado.');
+  const c = S.clips[i], d = newClip(c.a, c.b, c); S.clips.splice(i + 1, 0, d); S.selClip = i + 1; afterClips(); toast('Clip duplicado');
 }
 function deselectClip() { S.selClip = -1; openSheet(false); buildTools(); renderTrayHead(); markTray(); }
 window.addEventListener('keydown', e => {
@@ -1237,6 +1256,7 @@ function renderTrayHead() {
     ...(isDesk() && S.selClip >= 0 ? [btn('Duplicar', 'sm', duplicateClip, false, TI.dup), btn('Editar clip', 'sm primary', () => setTab('c-ajustar'), false, TI.adj)] : []),
     btn('Deshacer cortes', 'sm ghost', restoreAll, S.clips.length === 1 && S.clips[0].a <= .01 && S.clips[0].b >= srcDur() - .01, ICO.undo));
   if (isDesk()) { h.appendChild(el('span', 'sp')); h.appendChild(el('span', 'hint', 'S divide · Supr elimina')); }
+  if (isVideo()) h.appendChild(helpBtn('timeline'));
 }
 function sizeTray() {
   const rows = $('rows'); rows.innerHTML = '';
@@ -1328,7 +1348,8 @@ function placePlayhead() {
 let tld = null;
 $('trk').addEventListener('pointerdown', e => {
   if (S.busy) return;
-  const bar = e.target.closest('.tbar'); if (!bar) return;
+  const bar = e.target.closest('.tbar');
+  if (!bar || bar.classList.contains('rul')) { if (S.selClip >= 0 && !e.target.closest('.tlab')) deselectClip(); if (!bar) return; }
   const r = bar.getBoundingClientRect(), x = e.clientX - r.left, W = r.width, E = editDur();
   if (bar.id === 'vbar') {
     let edge = null;
@@ -1459,7 +1480,7 @@ function buildTools() {
   const mk = (id, lab, ico, fn, cls) => { const b = el('button', 'tool' + (cls ? ' ' + cls : ''), ico + `<span>${lab}</span>`); b.dataset.t = id; b.setAttribute('aria-label', lab); b.onclick = fn; t.appendChild(b); };
   const panel = id => () => { if (S.sheet && S.tab === id) openSheet(false); else setTab(id); };
   if (clip) {
-    mk('back', 'Clip ' + (S.selClip + 1), TI.back, deselectClip, 'back');
+    mk('back', 'Listo', TI.back, deselectClip, 'back');
     mk('split', 'Dividir', ICO.split, () => { splitHere(); });
     mk('c-vol', 'Volumen', TI.vol, panel('c-vol'));
     mk('dup', 'Duplicar', TI.dup, duplicateClip);
@@ -1498,6 +1519,7 @@ function setTab(t, open = true) {
 function openSheet(on) {
   S.sheet = on; shell.classList.toggle('sheet-open', !!on);
   $('sheetTitle').textContent = S.tab === 'color' && S.qmode === 'f' ? 'Filtros' : (SHEET_T[S.tab] || '');
+  const hb = $('sheetHelp'); if (hb) hb.onclick = e => { e.stopPropagation(); showHelp(S.tab, hb); };
   paintTools(); requestAnimationFrame(() => { fitStage(); sizeTray(); });
 }
 function paintTools() {
@@ -1537,7 +1559,7 @@ function toggleMaskMenu() {
   m.innerHTML = '';
   const it = (lab, ico, fn) => { const b = el('button', 'mmi', ico + `<span>${lab}</span>`); b.onclick = () => { closeMaskMenu(); fn(); }; m.appendChild(b); };
   it('Detectar personas', ICO.scan, () => { openSheet(false); detectAll(); });
-  it('Tocar persona', ICO.tap, () => { if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para añadir otra.'); return; } openSheet(false); S.pick = { mode: 'new' }; toast('Toca a la persona en el visor.'); });
+  it('Tocar persona', ICO.tap, () => { if (S.layers.length >= MAXL) { toast('Ya tienes 4 capas. Elimina una para añadir otra.'); return; } openSheet(false); S.pick = { mode: 'new' }; });
   it('Pincel inteligente', ICO.brush, () => { openSheet(false); startBrush(null); });
   m.appendChild(el('div', 'mmsep', 'Formas'));
   const sh = el('div', 'mmshapes');
@@ -1561,8 +1583,31 @@ function layerSub(L) {
   const c = coverage(L), what = L.part && L.part !== 'todo' ? PARTS[L.part] : 'Persona';
   return c ? `${what} · visible ${Math.round(c * 100)}%` : `${what} · sin detectar`;
 }
+function renderCapasPhone(P) {
+  const wrap = el('div', 'stack quick'); P.appendChild(wrap);
+  const row = el('div', 'qrow lcards');
+  const card = (id, name, sub, color, L) => {
+    const c = el('button', 'lcard' + (L && !L.visible ? ' off' : ''), `<span class="dot" style="background:${color}"></span><b>${esc(name)}</b><small>${sub}</small>`);
+    c.setAttribute('aria-pressed', S.sel === id); c.onclick = () => selectLayer(id); row.appendChild(c);
+  };
+  card('scene', 'Escena', 'Todo el cuadro', 'conic-gradient(#e8574b,#5fc06a,#4b8ef0,#e8574b)');
+  S.layers.forEach(L => card(L.id, L.name, layerSub(L), L.color, L));
+  wrap.appendChild(row);
+  const L = selLayer(), acts = el('div', 'qrow lacts');
+  if (L) {
+    acts.append(btn(L.visible ? 'Ocultar' : 'Mostrar', 'sm', () => { L.visible = !L.visible; renderCapas(); sizeTray(); }, false, L.visible ? ICO.eyeoff : ICO.eye),
+      btn('Ajustar', 'sm', () => setTab('color'), false, TI.adj), btn('Retoque', 'sm', () => setTab('retoque'), false, TI.ret),
+      btn('Forma', 'sm', () => setTab('ajustes'), false, ICO.oval), btn('Eliminar', 'sm danger', () => removeLayer(L), false, ICO.trash));
+  } else {
+    const full = S.layers.length >= MAXL;
+    acts.append(btn('Detectar personas', 'sm primary', detectAll, full || !!S.busy, ICO.scan), btn('Tocar persona', 'sm', () => { S.pick = { mode: 'new' }; openSheet(false); }, full, ICO.tap),
+      btn('Pincel', 'sm', () => startBrush(null), full, ICO.brush), btn('Forma', 'sm', () => { openSheet(false); toggleMaskMenu(); }, full, ICO.oval));
+  }
+  wrap.appendChild(acts);
+}
 function renderCapas() {
   const P = $('p-capas'); P.innerHTML = '';
+  if (!isDesk()) { renderCapasPhone(P); return; }
   const wrap = el('div', 'stack'); P.appendChild(wrap);
   const miss = isVideo() && AN ? missingFrames().length : 0;
   const found = AN ? [...AN.tracks.values()].filter(t => t.keep).length : 0;
@@ -1831,7 +1876,7 @@ function openPartMenu(tid) {
       if (k === 'pincel') { startBrush(tid); return; }
       const L = personLayer({ tids: [tid], part: k }); S.layers.push(L); S.maskVer++; selectLayer(L.id); sizeTray();
       setTab(k === 'rostro' || k === 'piel' ? 'retoque' : 'color');
-      toast(`${L.name} creada.`);
+      toast(`${L.name} creada`);
     };
     grid.appendChild(b);
   });
@@ -1850,7 +1895,7 @@ function startBrush(tid) {
   openSheet(false);
   S.brush = { tid, size: +(store.get('cc-brush') || .035), strokes: [], down: false };
   $('brushSize').value = S.brush.size; $('brushBar').hidden = false;
-  toast(tid ? 'Pinta encima de la prenda o parte que quieres. No hace falta ser exacto: la IA ajusta el borde.' : 'Pinta encima de la prenda u objeto. La IA reconoce su forma y lo sigue.', 6500);
+
 }
 function endBrush() { S.brush = null; $('brushBar').hidden = true; }
 function brushPt(e) { const r = rect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
@@ -1893,7 +1938,7 @@ async function finishBrush() {
     const groups = new Set(); for (let k = 0; k < 7; k++) if (gc[k] > nb * .08) CLASS[k].forEach(x => groups.add(x));
     const L = personLayer({ tids: [tid], part: 'pincel', hb: smoothHist(hb), hg: smoothHist(hg), groups: [...groups] });
     S.layers.push(L); S.maskVer++; selectLayer(L.id); sizeTray(); if (!isDesk()) setTab('color');
-    toast(`${L.name} creada. La selección sigue a ${pname(tid)} en cada movimiento.`, 6000);
+    toast(`${L.name} creada`);
   } else {
     let x0 = W, y0 = H, x1 = 0, y1 = 0;
     for (let p = 0; p < W * H; p++) if (m[p]) { const x = p % W, y = (p / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
@@ -1903,7 +1948,7 @@ async function finishBrush() {
     }
     const L = objectLayer({ cx: cx / W, cy: cy / H, rx: rx / H, ry: ry / H, hb: smoothHist(hb), hg: smoothHist(hg) });
     S.layers.push(L); S.maskVer++; selectLayer(L.id); sizeTray();
-    toast('Objeto marcado. Siguiendo su movimiento…');
+
     await trackOval(L);
   }
 }
@@ -1943,6 +1988,29 @@ function renderClipPanel(root, tab) {
   if (tab === 'c-filtros') S.qsel.cclip = 'filtros'; else if (tab === 'c-ajustar' && S.qsel.cclip === 'filtros') S.qsel.cclip = 'exp';
   renderQuick(root, qt, null, { g: c.g, rt: c.rt, key: qt === 'color' ? 'cclip' : 'cret', noTargets: true });
 }
+
+/* ================= Ayuda breve por sección ================= */
+const HELP = {
+  capas: 'Toca una capa para editarla. Con Máscaras (junto al video) añades personas, pincel o formas. El ojo oculta la capa y la papelera la elimina.',
+  color: 'Elige arriba la capa y desliza los ajustes de lado. El punto naranja marca lo que ya cambiaste. “+ Capa de ajuste” crea una capa que puedes alargar en la línea de tiempo.',
+  retoque: 'Suaviza, blanquea o unifica la piel de la capa elegida. Por debajo de 60 se ve más natural.',
+  ajustes: 'Forma, borde, intensidad y seguimiento de la capa elegida.',
+  'c-vol': 'Sube o baja el sonido solo de este clip.',
+  'c-ajustar': 'Colores solo para este clip. No afecta a los demás.',
+  'c-filtros': 'Filtro solo para este clip.',
+  'c-retoque': 'Retoque de piel solo para este clip.',
+  'c-fondo': 'La IA deja a las personas y cambia el fondo de este clip.',
+  timeline: 'Toca un clip para editarlo; toca fuera para volver. Pellizca con dos dedos para acercar hasta ver cada fotograma. Arrastra los bordes naranjas para recortar.'
+};
+function showHelp(key, anchor) {
+  const p = $('helpPop'); p.textContent = HELP[key] || ''; p.hidden = false;
+  const r = anchor.getBoundingClientRect(), W = window.innerWidth;
+  p.style.left = clamp(r.left + r.width / 2 - 140, 8, W - 288) + 'px';
+  const above = r.top > 160; p.style.top = (above ? r.top - 8 : r.bottom + 8) + 'px'; p.style.transform = above ? 'translateY(-100%)' : 'none';
+  clearTimeout(showHelp.t); showHelp.t = setTimeout(() => p.hidden = true, 7000);
+}
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.hbtn,#helpPop')) $('helpPop').hidden = true; });
+function helpBtn(key) { const b = el('button', 'hbtn', 'i'); b.setAttribute('aria-label', 'Ayuda'); b.onclick = e => { e.stopPropagation(); showHelp(key, b); }; return b; }
 
 /* ================= Panel rápido (teléfono) ================= */
 S.qsel = { color: 'filtros', retoque: 'smooth', cclip: 'exp', cret: 'smooth' };
@@ -1988,7 +2056,7 @@ function renderQuick(root, tab, L, src) {
   if (!src && tab === 'color' && S.layers.length < MAXL && isVideo()) {
     const b = el('button', 'qt add', '+ Capa de ajuste'); b.onclick = () => {
       const c = S.clips[S.ci], o = clipOffset(S.ci), L2 = adjLayer({ t0: o, t1: o + (c.b - c.a) }); S.layers.push(L2); selectLayer(L2.id); sizeTray();
-      toast('Capa de ajuste creada para este clip. Arrastra sus bordes en la línea de tiempo para alargarla.', 6000);
+
     }; tg.appendChild(b);
   }
   root.appendChild(tg);
@@ -2050,7 +2118,7 @@ function clearVideo() {
   $('badge').textContent = ''; $('meta').textContent = '';
   shell.classList.add('empty');
   $('rows').style.width = ''; layoutViewer(); renderCapas(); renderBody(); renderTrayHead(); paintTrim(); sizeTray(); buildTools();
-  toast('Video quitado. Importa otro cuando quieras.');
+
 }
 
 /* ================= Importar ================= */
@@ -2079,7 +2147,7 @@ $('file').addEventListener('change', e => {
     video.currentTime = 0;
     makeThumbs(url);
     requestAnimationFrame(sizeTray);
-    toast('Video cargado. Recorta lo que no quieras y luego pulsa “Detectar personas”.', 6500);
+
   });
   e.target.value = '';
 });
@@ -2443,7 +2511,7 @@ async function detectAll() {
   pick.forEach(t => pname(t.tid));
   pick.forEach(t => S.layers.push(personLayer({ tids: [t.tid] })));
   S.maskVer++; selectLayer(S.layers[S.layers.length - pick.length].id); sizeTray();
-  toast(`${pick.length === 1 ? 'Encontré 1 persona' : 'Encontré ' + pick.length + ' personas'}${cand.length > slots ? ` (hay ${cand.length}; máximo 4 capas)` : ''}. Toca a cada una en el visor para editarla.`, 6500);
+  toast(`${pick.length === 1 ? '1 persona' : pick.length + ' personas'}${cand.length > slots ? ` (máx. 4)` : ''}`);
   if (!isDesk()) setTab('color');
 }
 
@@ -2680,7 +2748,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '18';
+const APP_VERSION = '19';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
@@ -2724,12 +2792,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.cl
 
 /* ================= Avisos ================= */
 let toastT;
-function toast(msg, ms = 4500) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.hidden = false; t.classList.remove('out'); clearTimeout(toastT); ms = ms || Math.min(4500, 1400 + msg.length * 35); toastT = setTimeout(() => { t.classList.add('out'); setTimeout(() => t.hidden = true, 250); }, ms); }
 
 /* ================= Inicio ================= */
 S.nf = Math.floor(S.demoDur * S.afps) + 1;
 S.clips = [newClip(0, S.demoDur)];
 S.playing = false; S.sel = 'scene'; shell.classList.add('empty');
+(() => { const sp = $('splash'); if (!sp) return; if ($('upd') && !$('upd').hidden) { sp.remove(); return; } setTimeout(() => { sp.classList.add('out'); setTimeout(() => sp.remove(), 450); }, 1300); })();
 $('emptyImport').onclick = () => $('file').click();
 allocMasks();
 let last = performance.now();
