@@ -1325,6 +1325,7 @@ function runsOf(L) {
   const r = []; let s = -1;
   for (let i = 0; i <= nf; i++) { const f = nearIn(A, i); const on = !!(f && f.poses.some(p => L.tids.includes(p.tid))); if (on && s < 0) s = i; if (!on && s >= 0) { r.push([s / fps, i / fps]); s = -1; } }
   if (s >= 0) r.push([s / fps, (nf + 1) / fps]);
+  for (let k = r.length - 1; k > 0; k--) if (r[k][0] - r[k - 1][1] < 6 / fps) { r[k - 1][1] = r[k][1]; r.splice(k, 1); }
   L._rk = key; L._runs = r; return r;
 }
 function forClips(W, fn) { const E = editDur() || 1; let o = 0; S.clips.forEach((c, i) => { fn(c, i, o / E * W, (c.b - c.a) / E * W); o += c.b - c.a; }); }
@@ -2455,6 +2456,43 @@ function iou(a, b) {
   const i = Math.max(0, x1 - x0) * Math.max(0, y1 - y0), u = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - i;
   return u > 0 ? i / u : 0;
 }
+// personas que la IA de pose no vio en este cuadro pero siguen ahí: se conserva su identidad
+function ghosts(tr, inst, pha, idx) {
+  const W = S.mw, H = S.mh, out = [], have = new Set(inst.map(p => p.tid));
+  tr.tracks.forEach(t => {
+    if (have.has(t.tid) || t.count < 2 || idx - t.last < 1 || idx - t.last > S.afps * 1.5) return;
+    if (inst.some(p => iou(p.box, t.box) > .45)) return;
+    const b = t.box, x0 = Math.max(0, b[0] * W | 0), x1 = Math.min(W - 1, b[2] * W | 0), y0 = Math.max(0, b[1] * H | 0), y1 = Math.min(H - 1, b[3] * H | 0);
+    let on = 0, n = 0; for (let y = y0; y <= y1; y += 2) for (let x = x0; x <= x1; x += 2) { n++; if (pha[y * W + x] > .3) on++; }
+    if (!n || on / n < .18) return;
+    out.push({ tid: t.tid, box: t.box, kps: t.kps || null, score: .3, ghost: 1 });
+  });
+  return out;
+}
+// une identidades partidas: si una persona "desaparece" y otra "aparece" en el mismo sitio, son la misma
+function mergeTracks(A) {
+  if (!A || !A.tracks) return;
+  const owned = new Set(); S.layers.forEach(L => L.tids && L.src === S.cur && L.tids.forEach(id => owned.add(id)));
+  const T = [...A.tracks.values()].filter(t => t.first != null).sort((a, b) => a.first - b.first);
+  const map = new Map(), root = id => { while (map.has(id)) id = map.get(id); return id; };
+  for (const b of T) {
+    if (owned.has(b.tid)) continue;
+    let best = null, bs = 1e9;
+    for (const a0 of T) {
+      const a = A.tracks.get(root(a0.tid)); if (!a || a.tid === b.tid || a.first >= b.first || a.last >= b.first + 2) continue;
+      const gap = b.first - a.last; if (gap > S.afps * 3) continue;
+      const w = Math.max(a.box[2] - a.box[0], b.fbox[2] - b.fbox[0], .05);
+      const d = Math.hypot((a.box[0] + a.box[2] - b.fbox[0] - b.fbox[2]) / 2, (a.box[1] + a.box[3] - b.fbox[1] - b.fbox[3]) / 4) / w;
+      const sc = d + gap / (S.afps * 6); if (d < 1.1 && sc < bs) { bs = sc; best = a; }
+    }
+    if (!best) continue;
+    map.set(b.tid, best.tid);
+    best.last = Math.max(best.last, b.last); best.box = b.box; best.count += b.count; best.sx += b.sx; best.area += b.area; A.tracks.delete(b.tid);
+  }
+  if (!map.size) return;
+  const lut = new Uint8Array(256); for (let i = 0; i < 256; i++) lut[i] = root(i);
+  A.frames.forEach(f => { if (!f) return; f.poses.forEach(p => p.tid = lut[p.tid]); if (f.label) for (let i = 0; i < f.label.length; i++) f.label[i] = lut[f.label[i]]; });
+}
 function newTracker() {
   const tracks = new Map(); let next = 1;
   return {
@@ -2472,8 +2510,8 @@ function newTracker() {
       pairs.sort((a, b) => b[0] - a[0]);
       const usedK = new Set(), usedT = new Set();
       pairs.forEach(([s, k, t]) => { if (usedK.has(k) || usedT.has(t.tid)) return; usedK.add(k); usedT.add(t.tid); inst[k].tid = t.tid; });
-      inst.forEach((p, k) => { if (!usedK.has(k)) { if (next > 250) { p.tid = 250; return; } p.tid = next++; tracks.set(p.tid, { tid: p.tid, box: p.box, last: idx, count: 0, sx: 0, area: 0 }); } });
-      inst.forEach(p => { const t = tracks.get(p.tid); if (!t) return; t.box = p.box; t.last = idx; t.count++; t.sx += (p.box[0] + p.box[2]) / 2; t.area += (p.box[2] - p.box[0]) * (p.box[3] - p.box[1]); });
+      inst.forEach((p, k) => { if (!usedK.has(k)) { if (next > 250) { p.tid = 250; return; } p.tid = next++; tracks.set(p.tid, { tid: p.tid, box: p.box, last: idx, first: idx, fbox: p.box, count: 0, sx: 0, area: 0 }); } });
+      inst.forEach(p => { const t = tracks.get(p.tid); if (!t) return; t.box = p.box; t.kps = p.kps; t.last = idx; if (idx < t.first) { t.first = idx; t.fbox = p.box; } t.count++; t.sx += (p.box[0] + p.box[2]) / 2; t.area += (p.box[2] - p.box[0]) * (p.box[3] - p.box[1]); });
     }
   };
 }
@@ -2544,6 +2582,7 @@ async function analyze() {
       let inst = poseM ? await runPose() : [];
       if (!inst.length) inst = compInstances(pha);
       tr.assign(inst, idx, jump); jump = false;
+      inst = inst.concat(ghosts(tr, inst, pha, idx));
       const lab = labelFrame(pha, inst, prevLab); prevLab = lab;
       frames[idx] = storeFrame(pha, lab, inst);
       need.delete(idx); done++;
@@ -2593,6 +2632,7 @@ async function analyze() {
         for (const i of rest) { if (S.cancel) break; await seek(Math.min(i / S.afps, video.duration - .02)); if (video.requestVideoFrameCallback) await new Promise(r => { const t = setTimeout(r, 120); video.requestVideoFrameCallback(() => { clearTimeout(t); r(); }); }); snap(); if (jump) for (let k = 0; k < E.reps - 1; k++) await E.matte(st); prevLab = null; await process(i); }
       }
     }
+    mergeTracks(AN);
     AN.ver++;
     const minC = Math.max(3, keptIndices().length * .05);
     tr.tracks.forEach(t => { t.keep = t.count >= minC; t.ax = t.sx / Math.max(1, t.count); t.aa = t.area / Math.max(1, t.count); });
@@ -2865,7 +2905,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '26';
+const APP_VERSION = '27';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
