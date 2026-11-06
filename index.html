@@ -108,6 +108,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 .trow.off .tbar,.trow.off .tlab .nm{opacity:.4}
 .ph{position:absolute;left:0;top:0;bottom:0;will-change:transform;width:2px;margin-left:-1px;background:#fff;pointer-events:none;z-index:2;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .ph::before{content:"";position:absolute;top:0;left:-4px;width:10px;height:10px;border-radius:50%;background:#fff}
+.phg{position:absolute;left:-19px;width:40px;bottom:0;top:auto;height:40px;pointer-events:auto;touch-action:none;cursor:ew-resize}
+.phg i{position:absolute;left:12px;bottom:4px;width:16px;height:22px;border-radius:6px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.phg i::before{content:"";position:absolute;left:5px;top:6px;width:1.5px;height:10px;background:#9aa0a8;box-shadow:4px 0 0 #9aa0a8}
+.phg.on i{background:var(--accent)}
 
 .tabs{grid-area:tabs;display:flex;background:var(--panel);border-bottom:1px solid var(--line)}
 .tab{flex:1;border:0;background:none;padding:7px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
@@ -427,7 +431,7 @@ a.btn{text-decoration:none;color:inherit}
   <section class="tray" id="tray" aria-label="Línea de tiempo">
     <div class="grip" id="grip" title="Arrastra para cambiar el tamaño"></div>
     <div class="trayhead" id="trayhead"><div class="tht" id="thT"></div><div class="thb" id="thB"></div></div>
-    <div class="trk" id="trk"><div class="ph" id="ph"></div><div id="rows"></div></div>
+    <div class="trk" id="trk"><div class="ph" id="ph"><div class="phg" id="phg"><i></i></div></div><div id="rows"></div></div>
   </section>
 
   <nav class="tabs" id="tabs" role="tablist">
@@ -1383,7 +1387,18 @@ function placePlayhead() {
   const vb = $('vbar'); if (!vb) return;
   const tr = $('trk').getBoundingClientRect(), br = vb.getBoundingClientRect(), E = editDur();
   $('ph').style.transform = `translateX(${br.left - tr.left + $('trk').scrollLeft + (E ? s2e(curT()) / E : 0) * br.width}px)`;
+  // zona para agarrar la línea: desde debajo de las capas hasta el final de la bandeja
+  const trk = $('trk'), below = $('rows').offsetHeight - trk.scrollTop, hgt = Math.max(40, trk.clientHeight - below);
+  const g = $('phg'); if (g._h !== hgt) { g.style.height = hgt + 'px'; g._h = hgt; }
 }
+(() => {
+  const g = $('phg'); let on = false;
+  const move = e => { const vb = $('vbar'); if (!vb) return; const br = vb.getBoundingClientRect(); setEdited(clamp((e.clientX - br.left) / br.width, 0, 1) * editDur()); autoScroll(); };
+  g.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); if (S.busy || !isVideo()) return; if (S.playing) togglePlay(false); on = true; g.classList.add('on'); g.setPointerCapture(e.pointerId); move(e); });
+  g.addEventListener('pointermove', e => { if (on) move(e); });
+  const end = () => { on = false; g.classList.remove('on'); };
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+})();
 let tld = null;
 $('trk').addEventListener('pointerdown', e => {
   if (S.busy) return;
@@ -2845,7 +2860,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '23';
+const APP_VERSION = '24';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
