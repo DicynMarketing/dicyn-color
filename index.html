@@ -1320,6 +1320,7 @@ function runsOf(L) {
   if (L._rk === key) return L._runs;
   const r = []; let s = -1;
   for (let i = 0; i <= nf; i++) { const f = nearIn(A, i); const on = !!(f && f.poses.some(p => L.tids.includes(p.tid))); if (on && s < 0) s = i; if (!on && s >= 0) { r.push([s / fps, i / fps]); s = -1; } }
+  if (s >= 0) r.push([s / fps, (nf + 1) / fps]);
   L._rk = key; L._runs = r; return r;
 }
 function forClips(W, fn) { const E = editDur() || 1; let o = 0; S.clips.forEach((c, i) => { fn(c, i, o / E * W, (c.b - c.a) / E * W); o += c.b - c.a; }); }
@@ -2561,7 +2562,7 @@ async function analyze() {
           const handle = t => {
             const idx = Math.round(t * S.afps);
             if (!need.has(idx) || (S.afps < 40 && Math.abs(t * S.afps - idx) > .45)) return null;
-            video.pause(); snap();
+            snap(); video.pause();
             return process(idx);
           };
           const cb = (now, meta) => {
@@ -2585,7 +2586,7 @@ async function analyze() {
       const rest = []; for (let i = lo; i <= hi; i++) if (need.has(i) && !frames[i - 1] && !frames[i + 1]) rest.push(i);
       if (rest.length && !S.cancel) {
         E.free(st); st = E.newState(); prevInst = null; jump = true;
-        for (const i of rest) { if (S.cancel) break; await seek(Math.min(i / S.afps, video.duration - .02)); snap(); if (jump) for (let k = 0; k < E.reps - 1; k++) await E.matte(st); prevLab = null; await process(i); }
+        for (const i of rest) { if (S.cancel) break; await seek(Math.min(i / S.afps, video.duration - .02)); if (video.requestVideoFrameCallback) await new Promise(r => { const t = setTimeout(r, 120); video.requestVideoFrameCallback(() => { clearTimeout(t); r(); }); }); snap(); if (jump) for (let k = 0; k < E.reps - 1; k++) await E.matte(st); prevLab = null; await process(i); }
       }
     }
     AN.ver++;
@@ -2860,7 +2861,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '24';
+const APP_VERSION = '25';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
