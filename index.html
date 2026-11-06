@@ -286,6 +286,10 @@ a.btn{text-decoration:none;color:inherit}
 .trk .tlab{position:sticky;left:0;z-index:3;background:var(--panel)}
 .trow.ruler .tbar{touch-action:pan-x}
 .modal{position:fixed;inset:0;z-index:20;background:rgba(5,6,8,.72);display:grid;place-items:center;padding:16px}
+#modal{background:transparent;place-items:end center;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+#modal .card{max-width:420px;width:100%;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#modal h2{font-size:15px;margin:0}#modal p{font-size:12px;margin:0;grid-column:1;opacity:.8}#modal .bar{grid-column:1/3;margin:2px 0 0}#modal .acts{grid-row:1/3;grid-column:2;margin:0}#modal .acts .btn{padding:8px 12px;font-size:13px}
+#mBar.ind{width:30%!important;animation:ind 1.1s ease-in-out infinite}@keyframes ind{0%{margin-left:0}50%{margin-left:70%}100%{margin-left:0}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(400px,100%);display:grid;gap:12px}
 .card h2{font-family:var(--display);font-size:18px;margin:0;text-wrap:balance}
 .card p{margin:0;color:var(--muted);line-height:1.45}
@@ -2251,8 +2255,8 @@ function seek(t) {
     video.addEventListener('seeked', done); video.currentTime = t;
   });
 }
-function showModal(title, text, cancelable = true) { $('mTitle').textContent = title; $('mText').textContent = text; $('mBar').style.width = '0%'; $('mCancel').hidden = !cancelable; $('modal').hidden = false; }
-const setProgress = f => $('mBar').style.width = Math.round(clamp(f, 0, 1) * 100) + '%';
+function showModal(title, text, cancelable = true) { $('mTitle').textContent = title; $('mText').textContent = text; $('mBar').style.width = '0%'; $('mBar').classList.add('ind'); $('mCancel').hidden = !cancelable; $('modal').hidden = false; }
+const setProgress = f => { $('mBar').classList.toggle('ind', !(f > 0)); $('mBar').style.width = Math.round(clamp(f, 0, 1) * 100) + '%'; };
 $('mCancel').onclick = () => { S.cancel = true; };
 const hideModal = () => { $('modal').hidden = true; };
 
@@ -2532,7 +2536,7 @@ async function analyze() {
     AN.tracks = AN.tracker.tracks;
     const frames = AN.frames, tr = AN.tracker;
     const need = new Set(missingFrames()), total = need.size;
-    showModal('Analizando personas', 'Solo se analiza la parte del video que conservas. El video se reproduce en silencio mientras la IA reconoce a cada persona.');
+    showModal('Analizando personas', 'Preparando la IA…');
     video.muted = true; video.pause();
     let done = 0, prevInst = null, jump = true, prevLab = null;
     const process = async idx => {
@@ -2543,7 +2547,7 @@ async function analyze() {
       const lab = labelFrame(pha, inst, prevLab); prevLab = lab;
       frames[idx] = storeFrame(pha, lab, inst);
       need.delete(idx); done++;
-      setProgress(done / Math.max(1, total)); $('mText').textContent = `Reconociendo personas: ${Math.round(done / Math.max(1, total) * 100)}%. Mantén la app abierta.`;
+      setProgress(done / Math.max(1, total)); $('mText').textContent = `${Math.round(done / Math.max(1, total) * 100)}% · mantén la app abierta`;
     };
     for (const clip of S.clips) {
       if (S.cancel) break;
@@ -2861,7 +2865,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '25';
+const APP_VERSION = '26';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
