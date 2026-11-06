@@ -255,6 +255,11 @@ a.btn{text-decoration:none;color:inherit}
 .mms{border:0;background:var(--raise);border-radius:9px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;cursor:pointer}
 .mms svg{width:20px;height:20px}
 .qt.add{border-style:dashed;color:var(--muted)}
+.backbtn{display:inline-flex;align-items:center;gap:4px;height:34px;min-width:34px;padding:0 6px;border-radius:9px;border:1px solid var(--line);background:var(--raise);cursor:pointer;flex:none;font-weight:700;font-size:12.5px}
+.backbtn svg{width:18px;height:18px}
+.backbtn span:empty{display:none}
+.backbtn.arm{background:var(--danger);border-color:var(--danger);color:#fff}
+.shell.empty .backbtn{display:none}
 .hbtn{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:none;color:var(--muted);font:600 11px/1 var(--body);font-style:italic;display:inline-grid;place-items:center;cursor:pointer;padding:0;opacity:.75}
 .hbtn:hover{opacity:1;color:var(--fg)}
 .helppop{position:fixed;z-index:40;width:280px;background:var(--raise2);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:var(--fg);box-shadow:0 10px 28px rgba(0,0,0,.45)}
@@ -383,6 +388,7 @@ a.btn{text-decoration:none;color:inherit}
 
 <div class="shell" id="shell" data-tab="capas">
   <header class="top">
+    <button class="backbtn" id="backBtn" aria-label="Salir del video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span></span></button>
     <div class="brand"><i aria-hidden="true"><b style="background:#e8574b"></b><b style="background:#5fc06a"></b><b style="background:#4b8ef0"></b></i><span>DiCyn Color</span></div>
     <span class="meta" id="meta"></span>
     <button class="btn" id="importBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15V3m0 0L7 8m5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Importar</button>
@@ -1201,7 +1207,7 @@ function splitHere() {
 }
 function deleteClip() {
   const i = S.selClip; if (i < 0 || !S.clips[i]) { toast('Toca un clip en la línea de video para elegirlo.'); return; }
-  if (S.clips.length === 1) { toast('No puedes eliminar todo el video.'); return; }
+  if (S.clips.length === 1) { clearVideo(); return; }
   const te = clipOffset(i);
   S.clips.splice(i, 1); S.selClip = -1; openSheet(false);
   setEdited(Math.min(te, editDur() - 1 / FPS));
@@ -1244,13 +1250,6 @@ function placeTransport() {
 function renderTrayHead() {
   placeTransport();
   const h = $('thB'); h.innerHTML = '';
-  if (isVideo()) {
-    const q = btn(S.quitArm ? '¿Quitar video?' : 'Quitar video', 'sm danger qv' + (S.quitArm ? ' arm' : ''), () => {
-      if (!S.quitArm) { S.quitArm = true; renderTrayHead(); clearTimeout(S.quitT); S.quitT = setTimeout(() => { S.quitArm = false; renderTrayHead(); }, 3500); return; }
-      S.quitArm = false; clearTimeout(S.quitT); clearVideo();
-    }, !!S.busy, ICO.trash);
-    h.appendChild(q);
-  }
   h.append(btn('Dividir', 'sm', splitHere, false, ICO.split),
     btn('Eliminar clip', 'sm' + (S.selClip >= 0 ? ' danger' : ''), deleteClip, S.selClip < 0 || S.clips.length < 2, ICO.cut),
     ...(isDesk() && S.selClip >= 0 ? [btn('Duplicar', 'sm', duplicateClip, false, TI.dup), btn('Editar clip', 'sm primary', () => setTab('c-ajustar'), false, TI.adj)] : []),
@@ -1484,7 +1483,7 @@ function buildTools() {
     mk('split', 'Dividir', ICO.split, () => { splitHere(); });
     mk('c-vol', 'Volumen', TI.vol, panel('c-vol'));
     mk('dup', 'Duplicar', TI.dup, duplicateClip);
-    mk('del', 'Eliminar', ICO.trash, () => { if (S.clips.length < 2) { toast('No puedes eliminar el único clip. Usa “Quitar video”.'); return; } deleteClip(); buildTools(); }, 'danger');
+    mk('del', 'Eliminar', ICO.trash, () => { if (S.clips.length < 2) { clearVideo(); return; } deleteClip(); buildTools(); }, 'danger');
     mk('c-ajustar', 'Ajustar', TI.adj, panel('c-ajustar'));
     mk('c-filtros', 'Filtros', TI.filt, panel('c-filtros'));
     mk('c-retoque', 'Retoque', TI.ret, panel('c-retoque'));
@@ -2106,9 +2105,22 @@ function qslider(obj, k, min, max, step, fmt, def, label, hue) {
   sync(); return row;
 }
 
+/* ================= Salir del video (botón atrás) ================= */
+function paintBack() {
+  const b = $('backBtn'); if (!b) return;
+  b.classList.toggle('arm', !!S.backArm);
+  b.querySelector('span').textContent = S.backArm ? '¿Salir?' : '';
+}
+$('backBtn').onclick = () => {
+  if (S.busy) return;
+  if (!S.backArm) { S.backArm = true; paintBack(); clearTimeout(S.backT); S.backT = setTimeout(() => { S.backArm = false; paintBack(); }, 4000); return; }
+  clearTimeout(S.backT); clearVideo();
+};
+
 /* ================= Quitar el video ================= */
 function clearVideo() {
   if (S.busy) return;
+  S.backArm = false; paintBack();
   togglePlay(false); closePartMenu(); endBrush(); openSheet(false);
   const old = video.src; video.removeAttribute('src'); video.load(); if (old && old.startsWith('blob:')) URL.revokeObjectURL(old);
   S.src = 'demo'; S.name = 'demo'; S.file = null; S.w = 1080; S.h = 1920; S.vt = 0; S.demoT = 0;
@@ -2748,7 +2760,7 @@ async function exportMR(ow, oh, bps) {
 }
 
 /* ================= Actualizaciones ================= */
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 function showUpdating(v) { $('updVer').textContent = 'Versión ' + v; $('upd').hidden = false; $('upd').classList.remove('out'); }
 function hideUpdating() { const u = $('upd'); u.classList.add('out'); setTimeout(() => { u.hidden = true; }, 450); }
 (() => {
@@ -2786,8 +2798,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ================= Sin zoom (modo app) ================= */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-let lastTouch = 0;
-document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 300 && !e.target.closest('input,select,textarea')) e.preventDefault(); lastTouch = n; }, { passive: false });
+
 if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.claude) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ================= Avisos ================= */
